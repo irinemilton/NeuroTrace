@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ML / datasets
+data/
+datasets/
+*.nii
+*.nii.gz
+*.dcm
+*.h5
+*.hdf5
+*.pth
+*.pt
+*.ckpt
+*.onnx
+
+# Generated 3D/model files
+*.glb
+*.gltf
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
