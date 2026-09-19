@@ -1,17 +1,48 @@
-import { OrbitControls, Text, useGLTF } from "@react-three/drei";
+import {
+  Html,
+  Line,
+  OrbitControls,
+  useGLTF,
+} from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import { Suspense, useEffect, useMemo } from "react";
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+} from "react";
 import * as THREE from "three";
 
-const MODEL_PATH = "/models/crl_104_clean_brain.glb";
+/* =========================================================
+   CONFIGURATION
+   ========================================================= */
+
+const MODEL_PATH =
+  "/models/crl_104_clean_brain.glb";
+
+const TARGET_BRAIN_SIZE = 2.5;
+
+/* =========================================================
+   TYPES
+   ========================================================= */
 
 interface BrainViewerProps {
   selectedRegion: string | null;
   showSurface: boolean;
   showRegions: boolean;
   showLabels: boolean;
-  onRegionSelect: (regionId: string | null) => void;
+  onRegionSelect: (
+    regionId: string | null,
+  ) => void;
 }
+
+interface RegionAnchor {
+  center: THREE.Vector3;
+  label: THREE.Vector3;
+}
+
+/* =========================================================
+   REGION MAPPING
+   ========================================================= */
 
 const REGION_MAP: Record<string, string> = {
   Right_Hippocampus: "hippocampus",
@@ -32,9 +63,102 @@ const REGION_MAP: Record<string, string> = {
   Right_Pallidum: "pallidum",
   Left_Pallidum: "pallidum",
 
-  Right_Lateral_Ventricle: "lateral-ventricle",
-  Left_Lateral_Ventricle: "lateral-ventricle",
+  Right_Lateral_Ventricle:
+    "lateral-ventricle",
+
+  Left_Lateral_Ventricle:
+    "lateral-ventricle",
 };
+
+/* =========================================================
+   REGION DISPLAY NAMES
+   ========================================================= */
+
+const REGION_LABELS: Record<string, string> = {
+  hippocampus: "Hippocampus",
+  amygdala: "Amygdala",
+  thalamus: "Thalamus",
+  caudate: "Caudate",
+  putamen: "Putamen",
+  pallidum: "Pallidum",
+  "lateral-ventricle":
+    "Lateral Ventricle",
+};
+
+/* =========================================================
+   LABEL POSITIONS
+   =========================================================
+   These offsets are deliberately separated so that
+   anatomical labels don't overlap each other.
+   ========================================================= */
+
+const LABEL_OFFSETS: Record<
+  string,
+  THREE.Vector3
+> = {
+  hippocampus:
+    new THREE.Vector3(
+      -0.22,
+      -0.02,
+      0.04,
+    ),
+
+  amygdala:
+    new THREE.Vector3(
+      0.25,
+      0.12,
+      0.04,
+    ),
+
+  thalamus:
+    new THREE.Vector3(
+      -0.30,
+      0.00,
+      0.04,
+    ),
+
+  caudate:
+    new THREE.Vector3(
+      -0.10,
+      0.24,
+      0.04,
+    ),
+
+  putamen:
+    new THREE.Vector3(
+      0.22,
+      0.22,
+      0.04,
+    ),
+
+  pallidum:
+    new THREE.Vector3(
+      -0.30,
+      -0.18,
+      0.04,
+    ),
+
+  "lateral-ventricle":
+    new THREE.Vector3(
+      -0.22,
+      -0.30,
+      0.04,
+    ),
+};
+
+/* =========================================================
+   LABEL STYLE
+   ========================================================= */
+
+const LABEL_STYLE: React.CSSProperties = {
+  pointerEvents: "none",
+  userSelect: "none",
+  whiteSpace: "nowrap",
+};
+
+/* =========================================================
+   BRAIN MODEL
+   ========================================================= */
 
 function BrainModel({
   selectedRegion,
@@ -45,46 +169,67 @@ function BrainModel({
 }: BrainViewerProps) {
   const { scene } = useGLTF(MODEL_PATH);
 
+  /* =======================================================
+     PREPARE MODEL
+     ======================================================= */
+
   const model = useMemo(() => {
     const clone = scene.clone(true);
 
-    /*
-     * Calculate the actual GLB bounds.
-     */
-    const box = new THREE.Box3().setFromObject(clone);
+    /* -------------------------------------------------------
+       Get original model dimensions
+       ------------------------------------------------------- */
 
-    const center = new THREE.Vector3();
-    const size = new THREE.Vector3();
+    const bounds =
+      new THREE.Box3().setFromObject(
+        clone,
+      );
 
-    box.getCenter(center);
-    box.getSize(size);
+    const originalCenter =
+      new THREE.Vector3();
 
-    const maxSize = Math.max(
-      size.x,
-      size.y,
-      size.z,
+    const originalSize =
+      new THREE.Vector3();
+
+    bounds.getCenter(
+      originalCenter,
     );
 
-    /*
-     * Scale the brain to a predictable size.
-     */
-    const targetSize = 2.5;
+    bounds.getSize(
+      originalSize,
+    );
+
+    /* -------------------------------------------------------
+       Normalize model size
+       ------------------------------------------------------- */
+
+    const maxDimension = Math.max(
+      originalSize.x,
+      originalSize.y,
+      originalSize.z,
+    );
 
     const scale =
-      maxSize > 0
-        ? targetSize / maxSize
+      maxDimension > 0
+        ? TARGET_BRAIN_SIZE /
+          maxDimension
         : 1;
 
     clone.scale.setScalar(scale);
 
-    /*
-     * Center AFTER scaling.
-     */
+    /* -------------------------------------------------------
+       Center model
+       ------------------------------------------------------- */
+
     clone.position.set(
-      -center.x * scale,
-      -center.y * scale,
-      -center.z * scale,
+      -originalCenter.x * scale,
+      -originalCenter.y * scale,
+      -originalCenter.z * scale,
     );
+
+    /* -------------------------------------------------------
+       Process meshes
+       ------------------------------------------------------- */
 
     clone.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) {
@@ -93,11 +238,16 @@ function BrainModel({
 
       object.frustumCulled = false;
 
-      /*
-       * Brain surface
-       */
-      if (object.name === "BrainSurface") {
-        object.visible = showSurface;
+      /* ================================================
+         BRAIN SURFACE
+         ================================================ */
+
+      if (
+        object.name ===
+        "BrainSurface"
+      ) {
+        object.visible =
+          showSurface;
 
         const material =
           object.material instanceof
@@ -109,32 +259,50 @@ function BrainModel({
           material instanceof
           THREE.MeshStandardMaterial
         ) {
-          material.color.set("#aebdca");
-          material.transparent = true;
-          material.opacity = 0.25;
-          material.roughness = 0.8;
-          material.metalness = 0;
-          material.depthWrite = false;
+          material.color.set(
+            "#aebdca",
+          );
+
+          material.transparent =
+            true;
+
+          material.opacity =
+            0.14;
+
+          material.roughness =
+            0.8;
+
+          material.metalness =
+            0;
+
+          material.depthWrite =
+            false;
         }
 
-        object.material = material;
+        object.material =
+          material;
 
         return;
       }
 
-      /*
-       * Anatomical structures
-       */
+      /* ================================================
+         SEGMENTED ANATOMICAL REGION
+         ================================================ */
+
       const regionId =
-        REGION_MAP[object.name];
+        REGION_MAP[
+          object.name
+        ];
 
       if (!regionId) {
         return;
       }
 
-      object.userData.regionId = regionId;
+      object.userData.regionId =
+        regionId;
 
-      object.visible = showRegions;
+      object.visible =
+        showRegions;
 
       const material =
         object.material instanceof
@@ -146,30 +314,71 @@ function BrainModel({
         material instanceof
         THREE.MeshStandardMaterial
       ) {
-        material.color.set("#6e879b");
-        material.transparent = true;
-        material.opacity = 0.88;
-        material.roughness = 0.55;
-        material.metalness = 0;
+        material.color.set(
+          "#6e879b",
+        );
 
-        material.emissive.set("#000000");
-        material.emissiveIntensity = 0;
+        material.transparent =
+          true;
+
+        material.opacity =
+          0.88;
+
+        material.roughness =
+          0.55;
+
+        material.metalness =
+          0;
+
+        material.emissive.set(
+          "#000000",
+        );
+
+        material.emissiveIntensity =
+          0;
       }
 
-      object.material = material;
+      object.material =
+        material;
     });
+
+    /* -------------------------------------------------------
+       Force transform update
+       ------------------------------------------------------- */
+
+    clone.updateMatrixWorld(
+      true,
+    );
 
     console.log(
       "NeuroTrace renderer:",
       {
-        originalSize: size,
+        originalSize: {
+          x: originalSize.x,
+          y: originalSize.y,
+          z: originalSize.z,
+        },
+
         scale,
-        meshes: countMeshes(clone),
+
+        position:
+          clone.position.toArray(),
+
+        meshes:
+          countMeshes(clone),
       },
     );
 
     return clone;
-  }, [scene, showSurface, showRegions]);
+  }, [
+    scene,
+    showSurface,
+    showRegions,
+  ]);
+
+  /* =======================================================
+     SELECTED REGION HIGHLIGHT
+     ======================================================= */
 
   useEffect(() => {
     model.traverse((object) => {
@@ -194,117 +403,433 @@ function BrainModel({
         return;
       }
 
-      if (selectedRegion === regionId) {
-        material.color.set("#4c9bd1");
-        material.emissive.set("#27698f");
-        material.emissiveIntensity = 0.5;
-        material.opacity = 1;
+      const isSelected =
+        selectedRegion ===
+        regionId;
+
+      if (isSelected) {
+        material.color.set(
+          "#4c9bd1",
+        );
+
+        material.emissive.set(
+          "#27698f",
+        );
+
+        material.emissiveIntensity =
+          0.5;
+
+        material.opacity =
+          1;
       } else {
-        material.color.set("#6e879b");
-        material.emissive.set("#000000");
-        material.emissiveIntensity = 0;
-        material.opacity = 0.88;
+        material.color.set(
+          "#6e879b",
+        );
+
+        material.emissive.set(
+          "#000000",
+        );
+
+        material.emissiveIntensity =
+          0;
+
+        material.opacity =
+          0.88;
       }
     });
-  }, [model, selectedRegion]);
+  }, [
+    model,
+    selectedRegion,
+  ]);
 
- return (
-  <>
-    <primitive
-      object={model}
-      onClick={(event: any) => {
-        event.stopPropagation();
+  /* =======================================================
+     CALCULATE REGION ANCHORS
+     ======================================================= */
+
+  const regionAnchors =
+    useMemo(() => {
+      /*
+       * Make sure model transformations
+       * are completely updated.
+       */
+      model.updateMatrixWorld(
+        true,
+      );
+
+      const regionBounds: Record<
+        string,
+        THREE.Box3
+      > = {};
+
+      /* ---------------------------------------------------
+         Find bounding box for each region
+         --------------------------------------------------- */
+
+      model.traverse((object) => {
+        if (
+          !(object instanceof THREE.Mesh)
+        ) {
+          return;
+        }
 
         const regionId =
-          event.object?.userData?.regionId;
+          object.userData.regionId;
 
-        if (regionId) {
-          onRegionSelect(regionId);
+        if (!regionId) {
+          return;
         }
-      }}
-    />
 
-    {showLabels &&
-      Array.from(
-        new Set(
-          Object.values(REGION_MAP),
-        ),
-      ).map((regionId) => {
-        let position:
-          | [number, number, number]
-          | null = null;
+        const meshBounds =
+          new THREE.Box3().setFromObject(
+            object,
+          );
 
-        model.traverse((object) => {
-          if (
-            position ||
-            !(object instanceof THREE.Mesh)
-          ) {
-            return;
-          }
-
-          if (
-            object.userData.regionId !==
+        if (
+          !regionBounds[
             regionId
-          ) {
-            return;
-          }
+          ]
+        ) {
+          regionBounds[
+            regionId
+          ] =
+            meshBounds.clone();
+        } else {
+          regionBounds[
+            regionId
+          ].union(
+            meshBounds,
+          );
+        }
+      });
 
-          const box =
-            new THREE.Box3().setFromObject(
-              object,
-            );
+      /* ---------------------------------------------------
+         Convert world coordinates to model-local
+         coordinates.
+         --------------------------------------------------- */
 
-          const center =
+      const anchors: Record<
+        string,
+        RegionAnchor
+      > = {};
+
+      Object.entries(
+        regionBounds,
+      ).forEach(
+        ([regionId, box]) => {
+          const worldCenter =
             new THREE.Vector3();
 
-          box.getCenter(center);
+          box.getCenter(
+            worldCenter,
+          );
 
-          position = [
-            center.x,
-            center.y,
-            center.z,
-          ];
-        });
+          /*
+           * World → model local
+           */
+          const localCenter =
+            model.worldToLocal(
+              worldCenter.clone(),
+            );
 
-        if (!position) {
-          return null;
-        }
+          /*
+           * Create label position in world space.
+           */
+          const worldLabel =
+            worldCenter
+              .clone()
+              .add(
+                LABEL_OFFSETS[
+                  regionId
+                ] ??
+                  new THREE.Vector3(
+                    0.15,
+                    0.1,
+                    0.04,
+                  ),
+              );
 
-        const label =
-          regionId === "lateral-ventricle"
-            ? "Lateral Ventricle"
-            : regionId
-                .split("-")
-                .map(
-                  (word) =>
-                    word.charAt(0).toUpperCase() +
-                    word.slice(1),
-                )
-                .join(" ");
+          /*
+           * World → model local
+           */
+          const localLabel =
+            model.worldToLocal(
+              worldLabel.clone(),
+            );
 
-        return (
-          <Text
-            key={regionId}
-            position={position}
-            fontSize={0.08}
+          anchors[
+            regionId
+          ] = {
+            center:
+              localCenter,
+
+            label:
+              localLabel,
+          };
+        },
+      );
+
+      console.log(
+        "NeuroTrace labels:",
+        Object.keys(anchors),
+      );
+
+      return anchors;
+    }, [model]);
+
+  /* =======================================================
+     REGION CLICK
+     ======================================================= */
+
+  const handleRegionClick = (
+    event: any,
+  ) => {
+    event.stopPropagation();
+
+    const regionId =
+      event.object?.userData
+        ?.regionId;
+
+    if (regionId) {
+      onRegionSelect(
+        regionId,
+      );
+    }
+  };
+
+  /* =======================================================
+     LABEL COMPONENT
+     ======================================================= */
+
+  const renderRegionLabel = (
+    regionId: string,
+    anchor: RegionAnchor,
+  ) => {
+    const selected =
+      selectedRegion ===
+      regionId;
+
+    const label =
+      REGION_LABELS[
+        regionId
+      ] ?? regionId;
+
+    return (
+      <group
+        key={regionId}
+      >
+        {/* ===============================================
+            ANATOMICAL ANCHOR DOT
+            =============================================== */}
+
+        <mesh
+          position={
+            anchor.center
+          }
+        >
+          <sphereGeometry
+            args={[
+              selected
+                ? 2.2
+                : 1.5,
+              12,
+              12,
+            ]}
+          />
+
+          <meshBasicMaterial
             color={
-              selectedRegion === regionId
+              selected
                 ? "#27698f"
-                : "#263746"
+                : "#71869a"
             }
-            anchorX="center"
-            anchorY="middle"
-            outlineWidth={0.01}
-            outlineColor="#ffffff"
-            depthOffset={-1}
+          />
+        </mesh>
+
+        {/* ===============================================
+            LEADER LINE
+            =============================================== */}
+
+        <Line
+          points={[
+            anchor.center.toArray(),
+            anchor.label.toArray(),
+          ]}
+          color={
+            selected
+              ? "#27698f"
+              : "#71869a"
+          }
+          lineWidth={
+            selected ? 2 : 1
+          }
+          transparent
+          opacity={
+            selected
+              ? 1
+              : 0.7
+          }
+        />
+
+        {/* ===============================================
+            LABEL CARD
+            =============================================== */}
+
+        <Html
+          position={
+            anchor.label
+          }
+          center
+          transform={false}
+          zIndexRange={[
+            100,
+            0,
+          ]}
+          style={
+            LABEL_STYLE
+          }
+        >
+          <div
+            style={{
+              display: "flex",
+
+              alignItems:
+                "center",
+
+              gap: "6px",
+
+              padding:
+                "5px 8px",
+
+              borderRadius:
+                "7px",
+
+              border: selected
+                ? "1px solid #4c9bd1"
+                : "1px solid rgba(120,140,155,0.35)",
+
+              background:
+                selected
+                  ? "rgba(235,247,255,0.98)"
+                  : "rgba(255,255,255,0.96)",
+
+              boxShadow:
+                selected
+                  ? "0 4px 14px rgba(39,105,143,0.20)"
+                  : "0 2px 8px rgba(30,50,65,0.14)",
+
+              backdropFilter:
+                "blur(6px)",
+
+              color:
+                selected
+                  ? "#1f5877"
+                  : "#344654",
+
+              fontFamily:
+                "Inter, system-ui, sans-serif",
+
+              fontSize:
+                "11px",
+
+              fontWeight:
+                600,
+
+              lineHeight:
+                "14px",
+
+              letterSpacing:
+                "0.01em",
+
+              whiteSpace:
+                "nowrap",
+            }}
           >
-            {label}
-          </Text>
-        );
-      })}
-  </>
-);
+            {/* Status indicator */}
+
+            <span
+              style={{
+                width: "6px",
+
+                height: "6px",
+
+                borderRadius:
+                  "50%",
+
+                background:
+                  selected
+                    ? "#27698f"
+                    : "#71869a",
+
+                flexShrink: 0,
+              }}
+            />
+
+            {/* Region name */}
+
+            <span>
+              {label}
+            </span>
+          </div>
+        </Html>
+      </group>
+    );
+  };
+
+  /* =======================================================
+     RENDER
+     ======================================================= */
+
+  return (
+    <>
+      {/* ===============================================
+          3D BRAIN
+          =============================================== */}
+
+      <primitive
+        object={model}
+        onClick={
+          handleRegionClick
+        }
+      />
+
+      {/* ===============================================
+          LABEL LAYER
+
+          IMPORTANT:
+          This layer receives the exact same
+          transform as the GLB.
+          =============================================== */}
+
+      {showLabels && (
+        <group
+          position={
+            model.position
+          }
+          scale={
+            model.scale
+          }
+        >
+          {Object.entries(
+            regionAnchors,
+          ).map(
+            ([
+              regionId,
+              anchor,
+            ]) =>
+              renderRegionLabel(
+                regionId,
+                anchor,
+              ),
+          )}
+        </group>
+      )}
+    </>
+  );
 }
+
+/* =========================================================
+   UTILITY
+   ========================================================= */
 
 function countMeshes(
   object: THREE.Object3D,
@@ -312,7 +837,9 @@ function countMeshes(
   let count = 0;
 
   object.traverse((child) => {
-    if (child instanceof THREE.Mesh) {
+    if (
+      child instanceof THREE.Mesh
+    ) {
       count++;
     }
   });
@@ -320,17 +847,29 @@ function countMeshes(
   return count;
 }
 
+/* =========================================================
+   SCENE
+   ========================================================= */
+
 function Scene(
   props: BrainViewerProps,
 ) {
   return (
     <>
+      {/* Background */}
+
       <color
         attach="background"
-        args={["#f5f7f8"]}
+        args={[
+          "#f5f7f8",
+        ]}
       />
 
-      <ambientLight intensity={2} />
+      {/* Main lighting */}
+
+      <ambientLight
+        intensity={2}
+      />
 
       <hemisphereLight
         intensity={2}
@@ -339,18 +878,32 @@ function Scene(
       />
 
       <directionalLight
-        position={[5, 6, 7]}
+        position={[
+          5,
+          6,
+          7,
+        ]}
         intensity={3}
       />
 
       <directionalLight
-        position={[-5, 2, 4]}
+        position={[
+          -5,
+          2,
+          4,
+        ]}
         intensity={2}
       />
 
+      {/* Brain */}
+
       <Suspense fallback={null}>
-        <BrainModel {...props} />
+        <BrainModel
+          {...props}
+        />
       </Suspense>
+
+      {/* Camera */}
 
       <OrbitControls
         makeDefault
@@ -364,6 +917,10 @@ function Scene(
   );
 }
 
+/* =========================================================
+   MAIN VIEWER
+   ========================================================= */
+
 export default function BrainViewer(
   props: BrainViewerProps,
 ) {
@@ -371,32 +928,64 @@ export default function BrainViewer(
     <div className="brain-viewer">
       <Canvas
         camera={{
-          position: [0, 0, 3.5],
+          position: [
+            0,
+            0,
+            3.5,
+          ],
+
           fov: 40,
+
           near: 0.01,
+
           far: 100,
         }}
-        dpr={[1, 1.5]}
+        dpr={[
+          1,
+          1.5,
+        ]}
         gl={{
           antialias: true,
           powerPreference:
             "high-performance",
         }}
       >
-        <Scene {...props} />
+        <Scene
+          {...props}
+        />
       </Canvas>
+
+      {/* =============================================
+          STATUS
+          ============================================= */}
 
       <div className="viewer-label">
         <span className="viewer-live-dot" />
+
         3D MRI SEGMENTATION
       </div>
 
+      {/* =============================================
+          CONTROLS
+          ============================================= */}
+
       <div className="viewer-controls">
-        <span>DRAG TO ROTATE</span>
-        <span>SCROLL TO ZOOM</span>
+        <span>
+          DRAG TO ROTATE
+        </span>
+
+        <span>
+          SCROLL TO ZOOM
+        </span>
       </div>
     </div>
   );
 }
 
-useGLTF.preload(MODEL_PATH);
+/* =========================================================
+   PRELOAD
+   ========================================================= */
+
+useGLTF.preload(
+  MODEL_PATH,
+);
