@@ -1,4 +1,4 @@
-import { OrbitControls, useGLTF } from "@react-three/drei";
+import { OrbitControls, Text, useGLTF } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo } from "react";
 import * as THREE from "three";
@@ -40,6 +40,7 @@ function BrainModel({
   selectedRegion,
   showSurface,
   showRegions,
+  showLabels,
   onRegionSelect,
 }: BrainViewerProps) {
   const { scene } = useGLTF(MODEL_PATH);
@@ -207,7 +208,8 @@ function BrainModel({
     });
   }, [model, selectedRegion]);
 
-  return (
+ return (
+  <>
     <primitive
       object={model}
       onClick={(event: any) => {
@@ -221,7 +223,87 @@ function BrainModel({
         }
       }}
     />
-  );
+
+    {showLabels &&
+      Array.from(
+        new Set(
+          Object.values(REGION_MAP),
+        ),
+      ).map((regionId) => {
+        let position:
+          | [number, number, number]
+          | null = null;
+
+        model.traverse((object) => {
+          if (
+            position ||
+            !(object instanceof THREE.Mesh)
+          ) {
+            return;
+          }
+
+          if (
+            object.userData.regionId !==
+            regionId
+          ) {
+            return;
+          }
+
+          const box =
+            new THREE.Box3().setFromObject(
+              object,
+            );
+
+          const center =
+            new THREE.Vector3();
+
+          box.getCenter(center);
+
+          position = [
+            center.x,
+            center.y,
+            center.z,
+          ];
+        });
+
+        if (!position) {
+          return null;
+        }
+
+        const label =
+          regionId === "lateral-ventricle"
+            ? "Lateral Ventricle"
+            : regionId
+                .split("-")
+                .map(
+                  (word) =>
+                    word.charAt(0).toUpperCase() +
+                    word.slice(1),
+                )
+                .join(" ");
+
+        return (
+          <Text
+            key={regionId}
+            position={position}
+            fontSize={0.08}
+            color={
+              selectedRegion === regionId
+                ? "#27698f"
+                : "#263746"
+            }
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.01}
+            outlineColor="#ffffff"
+            depthOffset={-1}
+          >
+            {label}
+          </Text>
+        );
+      })}
+  </>
+);
 }
 
 function countMeshes(
