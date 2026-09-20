@@ -4,41 +4,51 @@ import {
   OrbitControls,
   useGLTF,
 } from "@react-three/drei";
+
 import { Canvas } from "@react-three/fiber";
+
 import {
   Suspense,
   useEffect,
   useMemo,
+  useState,
+  type CSSProperties,
 } from "react";
+
 import * as THREE from "three";
+
 
 /* =========================================================
    CONFIGURATION
    ========================================================= */
 
-const MODEL_PATH =
-  "/models/crl_104_clean_brain.glb";
-
 const TARGET_BRAIN_SIZE = 2.5;
+
 
 /* =========================================================
    TYPES
    ========================================================= */
 
 interface BrainViewerProps {
+  subjectId: string;
+
   selectedRegion: string | null;
+
   showSurface: boolean;
   showRegions: boolean;
   showLabels: boolean;
+
   onRegionSelect: (
     regionId: string | null,
   ) => void;
 }
 
+
 interface RegionAnchor {
   center: THREE.Vector3;
   label: THREE.Vector3;
 }
+
 
 /* =========================================================
    REGION MAPPING
@@ -70,6 +80,7 @@ const REGION_MAP: Record<string, string> = {
     "lateral-ventricle",
 };
 
+
 /* =========================================================
    REGION DISPLAY NAMES
    ========================================================= */
@@ -85,11 +96,9 @@ const REGION_LABELS: Record<string, string> = {
     "Lateral Ventricle",
 };
 
+
 /* =========================================================
    LABEL POSITIONS
-   =========================================================
-   These offsets are deliberately separated so that
-   anatomical labels don't overlap each other.
    ========================================================= */
 
 const LABEL_OFFSETS: Record<
@@ -146,35 +155,47 @@ const LABEL_OFFSETS: Record<
     ),
 };
 
+
 /* =========================================================
    LABEL STYLE
    ========================================================= */
 
-const LABEL_STYLE: React.CSSProperties = {
+const LABEL_STYLE: CSSProperties = {
   pointerEvents: "none",
   userSelect: "none",
   whiteSpace: "nowrap",
 };
+
 
 /* =========================================================
    BRAIN MODEL
    ========================================================= */
 
 function BrainModel({
+  modelPath,
   selectedRegion,
   showSurface,
   showRegions,
   showLabels,
   onRegionSelect,
-}: BrainViewerProps) {
-  const { scene } = useGLTF(MODEL_PATH);
+}: BrainViewerProps & {
+  modelPath: string;
+}) {
+
+  const {
+    scene,
+  } = useGLTF(modelPath);
+
 
   /* =======================================================
      PREPARE MODEL
      ======================================================= */
 
   const model = useMemo(() => {
-    const clone = scene.clone(true);
+
+    const clone =
+      scene.clone(true);
+
 
     /* -------------------------------------------------------
        Get original model dimensions
@@ -185,29 +206,36 @@ function BrainModel({
         clone,
       );
 
+
     const originalCenter =
       new THREE.Vector3();
 
+
     const originalSize =
       new THREE.Vector3();
+
 
     bounds.getCenter(
       originalCenter,
     );
 
+
     bounds.getSize(
       originalSize,
     );
+
 
     /* -------------------------------------------------------
        Normalize model size
        ------------------------------------------------------- */
 
-    const maxDimension = Math.max(
-      originalSize.x,
-      originalSize.y,
-      originalSize.z,
-    );
+    const maxDimension =
+      Math.max(
+        originalSize.x,
+        originalSize.y,
+        originalSize.z,
+      );
+
 
     const scale =
       maxDimension > 0
@@ -215,7 +243,11 @@ function BrainModel({
           maxDimension
         : 1;
 
-    clone.scale.setScalar(scale);
+
+    clone.scale.setScalar(
+      scale,
+    );
+
 
     /* -------------------------------------------------------
        Center model
@@ -227,16 +259,23 @@ function BrainModel({
       -originalCenter.z * scale,
     );
 
+
     /* -------------------------------------------------------
        Process meshes
        ------------------------------------------------------- */
 
     clone.traverse((object) => {
-      if (!(object instanceof THREE.Mesh)) {
+
+      if (
+        !(object instanceof THREE.Mesh)
+      ) {
         return;
       }
 
-      object.frustumCulled = false;
+
+      object.frustumCulled =
+        false;
+
 
       /* ================================================
          BRAIN SURFACE
@@ -246,8 +285,10 @@ function BrainModel({
         object.name ===
         "BrainSurface"
       ) {
+
         object.visible =
           showSurface;
+
 
         const material =
           object.material instanceof
@@ -255,10 +296,12 @@ function BrainModel({
             ? object.material.clone()
             : object.material;
 
+
         if (
           material instanceof
           THREE.MeshStandardMaterial
         ) {
+
           material.color.set(
             "#aebdca",
           );
@@ -279,11 +322,14 @@ function BrainModel({
             false;
         }
 
+
         object.material =
           material;
 
+
         return;
       }
+
 
       /* ================================================
          SEGMENTED ANATOMICAL REGION
@@ -294,15 +340,19 @@ function BrainModel({
           object.name
         ];
 
+
       if (!regionId) {
         return;
       }
 
+
       object.userData.regionId =
         regionId;
 
+
       object.visible =
         showRegions;
+
 
       const material =
         object.material instanceof
@@ -310,10 +360,12 @@ function BrainModel({
           ? object.material.clone()
           : object.material;
 
+
       if (
         material instanceof
         THREE.MeshStandardMaterial
       ) {
+
         material.color.set(
           "#6e879b",
         );
@@ -338,21 +390,22 @@ function BrainModel({
           0;
       }
 
+
       object.material =
         material;
     });
 
-    /* -------------------------------------------------------
-       Force transform update
-       ------------------------------------------------------- */
 
     clone.updateMatrixWorld(
       true,
     );
 
+
     console.log(
       "NeuroTrace renderer:",
       {
+        modelPath,
+
         originalSize: {
           x: originalSize.x,
           y: originalSize.y,
@@ -369,29 +422,40 @@ function BrainModel({
       },
     );
 
+
     return clone;
+
   }, [
     scene,
+    modelPath,
     showSurface,
     showRegions,
   ]);
+
 
   /* =======================================================
      SELECTED REGION HIGHLIGHT
      ======================================================= */
 
   useEffect(() => {
+
     model.traverse((object) => {
-      if (!(object instanceof THREE.Mesh)) {
+
+      if (
+        !(object instanceof THREE.Mesh)
+      ) {
         return;
       }
+
 
       const regionId =
         object.userData.regionId;
 
+
       if (!regionId) {
         return;
       }
+
 
       const material =
         object.material instanceof
@@ -399,15 +463,19 @@ function BrainModel({
           ? object.material
           : null;
 
+
       if (!material) {
         return;
       }
+
 
       const isSelected =
         selectedRegion ===
         regionId;
 
+
       if (isSelected) {
+
         material.color.set(
           "#4c9bd1",
         );
@@ -421,7 +489,9 @@ function BrainModel({
 
         material.opacity =
           1;
+
       } else {
+
         material.color.set(
           "#6e879b",
         );
@@ -437,10 +507,12 @@ function BrainModel({
           0.88;
       }
     });
+
   }, [
     model,
     selectedRegion,
   ]);
+
 
   /* =======================================================
      CALCULATE REGION ANCHORS
@@ -448,52 +520,59 @@ function BrainModel({
 
   const regionAnchors =
     useMemo(() => {
-      /*
-       * Make sure model transformations
-       * are completely updated.
-       */
+
       model.updateMatrixWorld(
         true,
       );
+
 
       const regionBounds: Record<
         string,
         THREE.Box3
       > = {};
 
+
       /* ---------------------------------------------------
          Find bounding box for each region
          --------------------------------------------------- */
 
       model.traverse((object) => {
+
         if (
           !(object instanceof THREE.Mesh)
         ) {
           return;
         }
 
+
         const regionId =
           object.userData.regionId;
+
 
         if (!regionId) {
           return;
         }
+
 
         const meshBounds =
           new THREE.Box3().setFromObject(
             object,
           );
 
+
         if (
           !regionBounds[
             regionId
           ]
         ) {
+
           regionBounds[
             regionId
           ] =
             meshBounds.clone();
+
         } else {
+
           regionBounds[
             regionId
           ].union(
@@ -502,9 +581,9 @@ function BrainModel({
         }
       });
 
+
       /* ---------------------------------------------------
-         Convert world coordinates to model-local
-         coordinates.
+         Convert world coordinates to model-local coordinates
          --------------------------------------------------- */
 
       const anchors: Record<
@@ -512,28 +591,27 @@ function BrainModel({
         RegionAnchor
       > = {};
 
+
       Object.entries(
         regionBounds,
       ).forEach(
         ([regionId, box]) => {
+
           const worldCenter =
             new THREE.Vector3();
+
 
           box.getCenter(
             worldCenter,
           );
 
-          /*
-           * World → model local
-           */
+
           const localCenter =
             model.worldToLocal(
               worldCenter.clone(),
             );
 
-          /*
-           * Create label position in world space.
-           */
+
           const worldLabel =
             worldCenter
               .clone()
@@ -548,13 +626,12 @@ function BrainModel({
                   ),
               );
 
-          /*
-           * World → model local
-           */
+
           const localLabel =
             model.worldToLocal(
               worldLabel.clone(),
             );
+
 
           anchors[
             regionId
@@ -568,13 +645,21 @@ function BrainModel({
         },
       );
 
+
       console.log(
         "NeuroTrace labels:",
-        Object.keys(anchors),
+        Object.keys(
+          anchors,
+        ),
       );
 
+
       return anchors;
-    }, [model]);
+
+    }, [
+      model,
+    ]);
+
 
   /* =======================================================
      REGION CLICK
@@ -583,18 +668,23 @@ function BrainModel({
   const handleRegionClick = (
     event: any,
   ) => {
+
     event.stopPropagation();
+
 
     const regionId =
       event.object?.userData
         ?.regionId;
 
+
     if (regionId) {
+
       onRegionSelect(
         regionId,
       );
     }
   };
+
 
   /* =======================================================
      LABEL COMPONENT
@@ -604,19 +694,23 @@ function BrainModel({
     regionId: string,
     anchor: RegionAnchor,
   ) => {
+
     const selected =
       selectedRegion ===
       regionId;
+
 
     const label =
       REGION_LABELS[
         regionId
       ] ?? regionId;
 
+
     return (
       <group
         key={regionId}
       >
+
         {/* ===============================================
             ANATOMICAL ANCHOR DOT
             =============================================== */}
@@ -626,6 +720,7 @@ function BrainModel({
             anchor.center
           }
         >
+
           <sphereGeometry
             args={[
               selected
@@ -643,7 +738,9 @@ function BrainModel({
                 : "#71869a"
             }
           />
+
         </mesh>
+
 
         {/* ===============================================
             LEADER LINE
@@ -660,7 +757,9 @@ function BrainModel({
               : "#71869a"
           }
           lineWidth={
-            selected ? 2 : 1
+            selected
+              ? 2
+              : 1
           }
           transparent
           opacity={
@@ -669,6 +768,7 @@ function BrainModel({
               : 0.7
           }
         />
+
 
         {/* ===============================================
             LABEL CARD
@@ -688,14 +788,17 @@ function BrainModel({
             LABEL_STYLE
           }
         >
+
           <div
             style={{
-              display: "flex",
+              display:
+                "flex",
 
               alignItems:
                 "center",
 
-              gap: "6px",
+              gap:
+                "6px",
 
               padding:
                 "5px 8px",
@@ -703,9 +806,10 @@ function BrainModel({
               borderRadius:
                 "7px",
 
-              border: selected
-                ? "1px solid #4c9bd1"
-                : "1px solid rgba(120,140,155,0.35)",
+              border:
+                selected
+                  ? "1px solid #4c9bd1"
+                  : "1px solid rgba(120,140,155,0.35)",
 
               background:
                 selected
@@ -744,13 +848,14 @@ function BrainModel({
                 "nowrap",
             }}
           >
-            {/* Status indicator */}
 
             <span
               style={{
-                width: "6px",
+                width:
+                  "6px",
 
-                height: "6px",
+                height:
+                  "6px",
 
                 borderRadius:
                   "50%",
@@ -760,20 +865,23 @@ function BrainModel({
                     ? "#27698f"
                     : "#71869a",
 
-                flexShrink: 0,
+                flexShrink:
+                  0,
               }}
             />
-
-            {/* Region name */}
 
             <span>
               {label}
             </span>
+
           </div>
+
         </Html>
+
       </group>
     );
   };
+
 
   /* =======================================================
      RENDER
@@ -781,6 +889,7 @@ function BrainModel({
 
   return (
     <>
+
       {/* ===============================================
           3D BRAIN
           =============================================== */}
@@ -792,12 +901,9 @@ function BrainModel({
         }
       />
 
+
       {/* ===============================================
           LABEL LAYER
-
-          IMPORTANT:
-          This layer receives the exact same
-          transform as the GLB.
           =============================================== */}
 
       {showLabels && (
@@ -809,6 +915,7 @@ function BrainModel({
             model.scale
           }
         >
+
           {Object.entries(
             regionAnchors,
           ).map(
@@ -821,11 +928,14 @@ function BrainModel({
                 anchor,
               ),
           )}
+
         </group>
       )}
+
     </>
   );
 }
+
 
 /* =========================================================
    UTILITY
@@ -834,28 +944,102 @@ function BrainModel({
 function countMeshes(
   object: THREE.Object3D,
 ) {
+
   let count = 0;
 
+
   object.traverse((child) => {
+
     if (
       child instanceof THREE.Mesh
     ) {
       count++;
     }
+
   });
+
 
   return count;
 }
+
+
+/* =========================================================
+   MODEL AVAILABILITY CHECK
+   ========================================================= */
+
+async function checkModelExists(
+  modelPath: string,
+): Promise<boolean> {
+
+  try {
+
+    const response =
+      await fetch(
+        modelPath,
+        {
+          method:
+            "HEAD",
+
+          cache:
+            "no-store",
+        },
+      );
+
+
+    if (!response.ok) {
+      return false;
+    }
+
+
+    /*
+     * IMPORTANT:
+     *
+     * Vite can return index.html
+     * for a missing static asset.
+     *
+     * That response may still be
+     * HTTP 200, so response.ok alone
+     * is NOT enough.
+     */
+
+    const contentType =
+      (
+        response.headers.get(
+          "content-type",
+        ) ?? ""
+      ).toLowerCase();
+
+
+    if (
+      contentType.includes(
+        "text/html",
+      )
+    ) {
+      return false;
+    }
+
+
+    return true;
+
+  } catch {
+    return false;
+  }
+}
+
 
 /* =========================================================
    SCENE
    ========================================================= */
 
 function Scene(
-  props: BrainViewerProps,
+  props: BrainViewerProps & {
+    modelPath: string;
+  },
 ) {
+
   return (
     <>
+
       {/* Background */}
 
       <color
@@ -864,6 +1048,7 @@ function Scene(
           "#f5f7f8",
         ]}
       />
+
 
       {/* Main lighting */}
 
@@ -895,13 +1080,17 @@ function Scene(
         intensity={2}
       />
 
+
       {/* Brain */}
 
       <Suspense fallback={null}>
+
         <BrainModel
           {...props}
         />
+
       </Suspense>
+
 
       {/* Camera */}
 
@@ -913,9 +1102,11 @@ function Scene(
         minDistance={1.5}
         maxDistance={7}
       />
+
     </>
   );
 }
+
 
 /* =========================================================
    MAIN VIEWER
@@ -924,9 +1115,178 @@ function Scene(
 export default function BrainViewer(
   props: BrainViewerProps,
 ) {
+
+  const {
+    subjectId,
+  } = props;
+
+
+  /* -------------------------------------------------------
+     Subject-specific GLB path
+     ------------------------------------------------------- */
+
+  const modelPath =
+    subjectId
+      ? `/models/${encodeURIComponent(
+          subjectId,
+        )}_clean_brain.glb`
+      : "";
+
+
+  const [
+    modelStatus,
+    setModelStatus,
+  ] = useState<
+    "idle" |
+    "checking" |
+    "available" |
+    "missing"
+  >(
+    subjectId
+      ? "checking"
+      : "idle",
+  );
+
+
+  /* -------------------------------------------------------
+     Check GLB before mounting useGLTF
+     ------------------------------------------------------- */
+
+  useEffect(() => {
+
+    let cancelled =
+      false;
+
+
+    if (!subjectId) {
+
+      setModelStatus(
+        "idle",
+      );
+
+      return () => {
+        cancelled = true;
+      };
+    }
+
+
+    setModelStatus(
+      "checking",
+    );
+
+
+    async function checkModel() {
+
+      const exists =
+        await checkModelExists(
+          modelPath,
+        );
+
+
+      if (cancelled) {
+        return;
+      }
+
+
+      setModelStatus(
+        exists
+          ? "available"
+          : "missing",
+      );
+    }
+
+
+    checkModel();
+
+
+    return () => {
+      cancelled = true;
+    };
+
+  }, [
+    subjectId,
+    modelPath,
+  ]);
+
+
+  /* -------------------------------------------------------
+     No subject
+     ------------------------------------------------------- */
+
+  if (!subjectId) {
+
+    return (
+      <div className="brain-viewer">
+
+        <ViewerLabel />
+
+        <ViewerMessage
+          title="No subject selected"
+          message="Select an MRI subject to begin the 3D analysis."
+        />
+
+      </div>
+    );
+  }
+
+
+  /* -------------------------------------------------------
+     Checking
+     ------------------------------------------------------- */
+
+  if (
+    modelStatus ===
+    "checking"
+  ) {
+
+    return (
+      <div className="brain-viewer">
+
+        <ViewerLabel />
+
+        <ViewerMessage
+          title="Loading 3D model"
+          message={`Checking the subject-specific model for ${subjectId}.`}
+        />
+
+      </div>
+    );
+  }
+
+
+  /* -------------------------------------------------------
+     Missing model
+     ------------------------------------------------------- */
+
+  if (
+    modelStatus ===
+    "missing"
+  ) {
+
+    return (
+      <div className="brain-viewer">
+
+        <ViewerLabel />
+
+        <ViewerMessage
+          title="3D model not available"
+          message={`Segmentation may be ready for ${subjectId}, but the subject-specific GLB has not been generated yet.`}
+        />
+
+      </div>
+    );
+  }
+
+
+  /* -------------------------------------------------------
+     Render subject-specific model
+     ------------------------------------------------------- */
+
   return (
     <div className="brain-viewer">
+
       <Canvas
+        key={modelPath}
         camera={{
           position: [
             0,
@@ -940,36 +1300,63 @@ export default function BrainViewer(
 
           far: 100,
         }}
+
         dpr={[
           1,
           1.5,
         ]}
+
         gl={{
-          antialias: true,
+          antialias:
+            true,
+
           powerPreference:
             "high-performance",
         }}
       >
+
         <Scene
+          key={modelPath}
           {...props}
+          modelPath={
+            modelPath
+          }
         />
+
       </Canvas>
+
 
       {/* =============================================
           STATUS
           ============================================= */}
 
       <div className="viewer-label">
+
         <span className="viewer-live-dot" />
 
         3D MRI SEGMENTATION
+
+        <span
+          style={{
+            marginLeft:
+              "5px",
+
+            color:
+              "#52616d",
+          }}
+        >
+          · {subjectId}
+        </span>
+
       </div>
+
 
       {/* =============================================
           CONTROLS
           ============================================= */}
 
       <div className="viewer-controls">
+
         <span>
           DRAG TO ROTATE
         </span>
@@ -977,15 +1364,127 @@ export default function BrainViewer(
         <span>
           SCROLL TO ZOOM
         </span>
+
       </div>
+
     </div>
   );
 }
 
+
 /* =========================================================
-   PRELOAD
+   VIEWER LABEL
    ========================================================= */
 
-useGLTF.preload(
-  MODEL_PATH,
-);
+function ViewerLabel() {
+
+  return (
+    <div className="viewer-label">
+
+      <span className="viewer-live-dot" />
+
+      3D MRI SEGMENTATION
+
+    </div>
+  );
+}
+
+
+/* =========================================================
+   VIEWER MESSAGE
+   ========================================================= */
+
+function ViewerMessage({
+  title,
+  message,
+}: {
+  title: string;
+  message: string;
+}) {
+
+  return (
+    <div
+      style={{
+        position:
+          "absolute",
+
+        inset: 0,
+
+        display:
+          "flex",
+
+        alignItems:
+          "center",
+
+        justifyContent:
+          "center",
+
+        padding:
+          "24px",
+      }}
+    >
+
+      <div
+        style={{
+          maxWidth:
+            "380px",
+
+          padding:
+            "28px",
+
+          textAlign:
+            "center",
+
+          color:
+            "#64748b",
+        }}
+      >
+
+        <div
+          style={{
+            fontSize:
+              "34px",
+
+            marginBottom:
+              "12px",
+          }}
+        >
+          🧠
+        </div>
+
+
+        <h3
+          style={{
+            margin:
+              "0 0 8px",
+
+            color:
+              "#17202a",
+
+            fontSize:
+              "18px",
+          }}
+        >
+          {title}
+        </h3>
+
+
+        <p
+          style={{
+            margin: 0,
+
+            lineHeight:
+              1.6,
+
+            fontSize:
+              "13px",
+          }}
+        >
+          {message}
+        </p>
+
+      </div>
+
+    </div>
+  );
+}

@@ -1,164 +1,236 @@
-import axios from 'axios'
+import axios from "axios"
 
-const API_BASE = '/api/v1'
+const API_BASE = "http://127.0.0.1:8000/api"
 
 const api = axios.create({
   baseURL: API_BASE,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 })
 
-export interface ClinicalData {
-  subject_id: string
-  age: number
-  gender: number
-  mmse?: number
-  camcog?: number
-  gds?: number
-  fast?: number
-  katz?: number
-  barthel?: number
-  lawton?: number
-}
 
-export interface PredictionRequest {
-  clinical_data: ClinicalData
-  run_segmentation: boolean
-  run_shap: boolean
-}
+// ============================================================
+// TYPES
+// ============================================================
 
-export interface JobStatus {
-  job_id: string
-  status: 'queued' | 'running' | 'completed' | 'failed'
-  progress: number
-  message: string
-  result?: PredictionResult
-  error?: string
-}
-
-export interface PredictionResult {
-  subject_id: string
-  predicted_class: string
-  predicted_label: number
-  probabilities: Record<string, number>
-  shap_explanation?: SHAPExplanation
-  volumetric_features?: Record<string, number>
-  segmentation_path?: string
-}
-
-export interface SHAPExplanation {
-  subject_id: string
-  predicted_class: string
-  predicted_label: number
-  probabilities: Record<string, number>
-  top_features: Array<{
-    feature: string
-    shap_value: number
-    feature_value: number
-  }>
+export interface ProjectStatus {
+  project: string
+  raw_mri_available: boolean
+  total_mri_subjects: number
+  segmented_subjects: number
+  segmentation_running: boolean
+  clinical_data_available: boolean
+  ml_dataset_available: boolean
+  model_available: boolean
 }
 
 export interface Subject {
   subject_id: string
-  age: number
-  gender: number
-  mmse?: number
-  dxo_label?: number
+  mri_available: boolean
+  segmentation_available: boolean
 }
 
-export interface VolumetricData {
-  volumes: Record<string, number>
-  ratios: Record<string, number>
+export interface SubjectStatus {
+  subject_id: string
+  mri_available: boolean
+  segmentation_available: boolean
+  segmentation_path: string | null
 }
 
-export interface ModelInfo {
+export interface SubjectDetails {
+  subject_id: string
+  mri_available: boolean
+  segmentation_available: boolean
+  segmentation_path: string | null
+  clinical_data: Record<string, unknown> | null
+  imaging_features: Record<string, unknown> | null
+}
+
+export interface SegmentationStatus {
+  total: number
+  completed: number
+  remaining: number
+  subjects: SubjectStatus[]
+}
+
+export interface SegmentationFile {
+  subject_id: string
+  available: boolean
+  path: string
+  filename: string
+  size_bytes: number
+}
+
+export interface AnalysisResult {
   status: string
-  model_path?: string
-  feature_count?: number
-  features?: string[]
-  classes?: string[]
+  subject_id: string
+  segmentation_available?: boolean
+  prediction_available?: boolean
+  message: string
 }
 
-export interface FeatureImportance {
-  feature: string
-  mean_abs_shap: number
-  Control_mean_abs_shap?: number
-  BD_mean_abs_shap?: number
-  DCL_mean_abs_shap?: number
-  AD_mean_abs_shap?: number
-  overall_mean_abs_shap?: number
+export interface HealthStatus {
+  status: string
+  service: string
+  version: string
 }
 
-export const predict = async (
-  mriFile: File,
-  clinicalData: ClinicalData,
-  runSegmentation = true,
-  runShap = false
-): Promise<JobStatus> => {
-  const formData = new FormData()
-  formData.append('mri_file', mriFile)
-  formData.append('clinical_data', JSON.stringify(clinicalData))
-  formData.append('run_segmentation', String(runSegmentation))
-  formData.append('run_shap', String(runShap))
 
-  const response = await api.post<JobStatus>('/predict', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+// ============================================================
+// QUANTITATIVE MEASUREMENTS
+// ============================================================
+
+export interface MeasurementSide {
+  voxel_count: number
+  voxel_spacing_mm: number[]
+  voxel_volume_mm3: number
+  volume_mm3: number
+  dimensions_mm: number[]
+  centroid_voxel: number[] | null
+  centroid_mm: number[] | null
+  bounding_box_voxels: number[] | null
+  connected_components: number
+}
+
+export interface BilateralMeasurement {
+  left: MeasurementSide
+  right: MeasurementSide
+  total_volume_mm3: number
+  asymmetry_percent: number
+}
+
+export interface SubjectMeasurements {
+  segmentation_file: string
+  image_shape: number[]
+  voxel_spacing_mm: number[]
+  voxel_volume_mm3: number
+  regions: Record<string, BilateralMeasurement>
+}
+
+export interface SubjectMeasurementsResponse {
+  subject_id: string
+  status: string
+  measurements: SubjectMeasurements
+}
+
+
+// ============================================================
+// PROJECT STATUS
+// ============================================================
+
+export async function getProjectStatus(): Promise<ProjectStatus> {
+  const response = await api.get<ProjectStatus>("/status")
+
   return response.data
 }
 
-export const getJobStatus = async (jobId: string): Promise<JobStatus> => {
-  const response = await api.get<JobStatus>(`/jobs/${jobId}`)
+
+// ============================================================
+// SUBJECTS
+// ============================================================
+
+export async function listSubjects(): Promise<Subject[]> {
+  const response = await api.get<{
+    count: number
+    subjects: Subject[]
+  }>("/subjects")
+
+  return response.data.subjects
+}
+
+
+// ============================================================
+// SUBJECT DETAILS
+// ============================================================
+
+export async function getSubject(
+  subjectId: string,
+): Promise<SubjectDetails> {
+  const response = await api.get<SubjectDetails>(
+    `/subjects/${encodeURIComponent(subjectId)}`,
+  )
+
   return response.data
 }
 
-export const listJobs = async (): Promise<JobStatus[]> => {
-  const response = await api.get<JobStatus[]>('/jobs')
+
+// ============================================================
+// SEGMENTATION STATUS
+// ============================================================
+
+export async function getSegmentationStatus(): Promise<SegmentationStatus> {
+  const response = await api.get<SegmentationStatus>(
+    "/segmentation/status",
+  )
+
   return response.data
 }
 
-export const listSubjects = async (): Promise<Subject[]> => {
-  const response = await api.get<Subject[]>('/subjects')
+
+// ============================================================
+// SUBJECT SEGMENTATION
+// ============================================================
+
+export async function getSegmentation(
+  subjectId: string,
+): Promise<SegmentationFile> {
+  const response = await api.get<SegmentationFile>(
+    `/subjects/${encodeURIComponent(subjectId)}/segmentation`,
+  )
+
   return response.data
 }
 
-export const getSubject = async (subjectId: string): Promise<any> => {
-  const response = await api.get(`/subjects/${subjectId}`)
+
+// ============================================================
+// SUBJECT QUANTITATIVE MEASUREMENTS
+// ============================================================
+
+export async function getSubjectMeasurements(
+  subjectId: string,
+): Promise<SubjectMeasurementsResponse> {
+  const response = await api.get<SubjectMeasurementsResponse>(
+    `/subjects/${encodeURIComponent(subjectId)}/measurements`,
+  )
+
   return response.data
 }
 
-export const getSubjectVolumes = async (subjectId: string): Promise<VolumetricData> => {
-  const response = await api.get<VolumetricData>(`/subjects/${subjectId}/volumes`)
+
+// ============================================================
+// ANALYSIS
+// ============================================================
+
+export async function analyzeSubject(
+  subjectId: string,
+): Promise<AnalysisResult> {
+  const response = await api.post<AnalysisResult>(
+    "/analyze",
+    {
+      subject_id: subjectId,
+    },
+  )
+
   return response.data
 }
 
-export const getSHAPExplanation = async (subjectId: string): Promise<SHAPExplanation> => {
-  const response = await api.get<SHAPExplanation>(`/subjects/${subjectId}/shap`)
+
+// ============================================================
+// HEALTH
+// ============================================================
+
+export async function healthCheck(): Promise<HealthStatus> {
+  const response = await axios.get<HealthStatus>(
+    "http://127.0.0.1:8000/health",
+  )
+
   return response.data
 }
 
-export const getModelInfo = async (): Promise<ModelInfo> => {
-  const response = await api.get<ModelInfo>('/model/info')
-  return response.data
-}
 
-export const getFeatureImportance = async (): Promise<FeatureImportance[]> => {
-  const response = await api.get<FeatureImportance[]>('/model/feature-importance')
-  return response.data
-}
-
-export const getSegmentationFile = (subjectId: string): string => {
-  return `${API_BASE}/segmentation/${subjectId}`
-}
-
-export const getSHAPPlot = (subjectId: string, plotType: string): string => {
-  return `${API_BASE}/shap/plots/${subjectId}/${plotType}`
-}
-
-export const healthCheck = async (): Promise<{ status: string; model_trained: boolean; data_available: boolean }> => {
-  const response = await api.get('/health')
-  return response.data
-}
+// ============================================================
+// DEFAULT API CLIENT
+// ============================================================
 
 export default api

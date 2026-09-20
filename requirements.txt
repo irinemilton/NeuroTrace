@@ -14,4 +14,4 @@ timm>=0.6.0
 torchvision>=0.19.0
 pytorch-ignite>=0.4.11
 tensorboard>=2.17.0
-fire>=0.6.0
+fire>=0.6.0pydantic-settings>=2.0.0
