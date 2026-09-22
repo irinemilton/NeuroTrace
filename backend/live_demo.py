@@ -1,6 +1,7 @@
 from pathlib import Path
 from uuid import uuid4
 
+import base64
 import json
 import re
 import shutil
@@ -10,7 +11,7 @@ import nibabel as nib
 import numpy as np
 import pandas as pd
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 
 from scipy import ndimage
@@ -18,6 +19,7 @@ from skimage.measure import marching_cubes
 
 from src.features.update_brain_features import extract_subject
 from src.features.measurements import measure_subject
+from src.ml.shap_explainer import explain_features
 from src.segmentation.single_segment import segment_single_mri
 
 
@@ -1279,6 +1281,91 @@ def result(
         path.read_text(
             encoding="utf-8"
         )
+
+
+# ============================================================
+# GET LIVE MRI SLICE
+# ============================================================
+
+@router.get("/live-demo/slices/{subject_id}")
+def slice_view(
+        subject_id: str,
+        axis: str = Query("axial"),
+        index: int | None = Query(None),
+):
+        """Return safe metadata and an optionally requested grayscale slice.
+
+        The payload uses base64 encoded uint8 pixels rather than requiring a
+        server-side image library.  Pixel order is row-major and matches width /
+        height in the response.
+        """
+        if not re.fullmatch(r"live_(quick|full)_[0-9a-f]{12}", subject_id):
+            raise HTTPException(404, "Live analysis not found.")
+
+        axis = axis.lower()
+        axis_numbers = {"sagittal": 0, "coronal": 1, "axial": 2}
+        if axis not in axis_numbers:
+            raise HTTPException(400, "Axis must be axial, sagittal, or coronal.")
+
+        segmentation = LIVE_ROOT / subject_id / "segmentation.nii.gz"
+        if not segmentation.is_file():
+            raise HTTPException(404, "Live segmentation not found.")
+
+        try:
+            image = nib.load(str(segmentation))
+            shape = tuple(int(value) for value in image.shape[:3])
+            if len(shape) != 3 or any(value <= 0 for value in shape):
+                raise ValueError("segmentation is not a 3D volume")
+            data = np.asarray(image.dataobj, dtype=np.float32)
+        except Exception as error:
+            raise HTTPException(422, f"Unable to read live segmentation: {error}") from error
+
+        axis_number = axis_numbers[axis]
+        axis_length = shape[axis_number]
+        if index is None:
+            return {
+                "subject_id": subject_id,
+                "axis": axis,
+                "shape": list(shape),
+                "voxel_spacing_mm": [float(value) for value in image.header.get_zooms()[:3]],
+                "index": None,
+                "slice": None,
+            }
+        if index < 0 or index >= axis_length:
+            raise HTTPException(
+                400,
+                f"Slice index must be between 0 and {axis_length - 1} for {axis}.",
+            )
+
+        if axis == "axial":
+            pixels = data[:, :, index].T
+        elif axis == "sagittal":
+            pixels = data[index, :, :].T
+        else:
+            pixels = data[:, index, :].T
+
+        finite = pixels[np.isfinite(pixels)]
+        if finite.size:
+            low, high = np.percentile(finite, (1, 99))
+            if high <= low:
+                high = low + 1.0
+            normalized = np.clip((np.nan_to_num(pixels, nan=low) - low) / (high - low), 0, 1)
+        else:
+            normalized = np.zeros_like(pixels)
+
+        encoded = base64.b64encode(
+            (normalized * 255).astype(np.uint8).tobytes(order="C")
+        ).decode("ascii")
+        return {
+            "subject_id": subject_id,
+            "axis": axis,
+            "shape": list(shape),
+            "voxel_spacing_mm": [float(value) for value in image.header.get_zooms()[:3]],
+            "index": index,
+            "width": int(normalized.shape[1]),
+            "height": int(normalized.shape[0]),
+            "pixels_base64": encoded,
+        }
     )
 
 

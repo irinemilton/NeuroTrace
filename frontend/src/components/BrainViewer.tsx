@@ -11,7 +11,10 @@ import {
   Suspense,
   useEffect,
   useMemo,
+  useRef,
+  useState,
 } from "react";
+import { Maximize2, RotateCcw } from "lucide-react";
 
 import type { CSSProperties } from "react";
 
@@ -230,7 +233,14 @@ function BrainModel({
   showLabels,
   modelPath,
   onRegionSelect,
-}: BrainViewerProps) {
+  opacity = 0.88,
+  surfaceColor = "#aebdca",
+  regionColor = "#6e879b",
+}: BrainViewerProps & {
+  opacity?: number;
+  surfaceColor?: string;
+  regionColor?: string;
+}) {
 
   /*
    * IMPORTANT:
@@ -359,15 +369,12 @@ function BrainModel({
           THREE.MeshStandardMaterial
         ) {
 
-          material.color.set(
-            "#aebdca",
-          );
+          material.color.set(surfaceColor);
 
           material.transparent =
             true;
 
-          material.opacity =
-            0.14;
+          material.opacity = Math.min(1, opacity * 0.2);
 
           material.roughness =
             0.8;
@@ -424,15 +431,12 @@ function BrainModel({
         THREE.MeshStandardMaterial
       ) {
 
-        material.color.set(
-          "#6e879b",
-        );
+        material.color.set(regionColor);
 
         material.transparent =
           true;
 
-        material.opacity =
-          0.88;
+        material.opacity = opacity;
 
         material.roughness =
           0.55;
@@ -493,6 +497,9 @@ function BrainModel({
     activeModelPath,
     showSurface,
     showRegions,
+    opacity,
+    surfaceColor,
+    regionColor,
   ]);
 
 
@@ -553,9 +560,7 @@ function BrainModel({
 
       } else {
 
-        material.color.set(
-          "#6e879b",
-        );
+        material.color.set(regionColor);
 
         material.emissive.set(
           "#000000",
@@ -564,8 +569,7 @@ function BrainModel({
         material.emissiveIntensity =
           0;
 
-        material.opacity =
-          0.88;
+        material.opacity = opacity;
       }
 
     });
@@ -573,6 +577,8 @@ function BrainModel({
   }, [
     model,
     selectedRegion,
+    opacity,
+    regionColor,
   ]);
 
 
@@ -1045,8 +1051,20 @@ function countMeshes(
    ========================================================= */
 
 function Scene(
-  props: BrainViewerProps,
+  props: BrainViewerProps & {
+    opacity: number;
+    surfaceColor: string;
+    regionColor: string;
+    resetToken: number;
+    controlsRef: { current: any };
+  },
 ) {
+  const controls = props.controlsRef;
+  useEffect(() => {
+    if (controls.current) {
+      controls.current.reset();
+    }
+  }, [controls, props.resetToken]);
 
   return (
     <>
@@ -1106,6 +1124,7 @@ function Scene(
       {/* Camera */}
 
       <OrbitControls
+        ref={controls}
         makeDefault
 
         enableDamping
@@ -1131,10 +1150,28 @@ function Scene(
 export default function BrainViewer(
   props: BrainViewerProps,
 ) {
+  const [opacity, setOpacity] = useState(0.88);
+  const [surfaceColor, setSurfaceColor] = useState("#aebdca");
+  const [regionColor, setRegionColor] = useState("#6e879b");
+  const [resetToken, setResetToken] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const controlsRef = useRef<any>(null);
+  const viewerRef = useRef<HTMLDivElement>(null);
+
+  const toggleFullscreen = async () => {
+    if (!document.fullscreenElement) {
+      await viewerRef.current?.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      await document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
 
   return (
     <div
       className="brain-viewer"
+      ref={viewerRef}
     >
 
       <Canvas
@@ -1167,6 +1204,11 @@ export default function BrainViewer(
 
         <Scene
           {...props}
+          opacity={opacity}
+          surfaceColor={surfaceColor}
+          regionColor={regionColor}
+          resetToken={resetToken}
+          controlsRef={controlsRef}
         />
 
       </Canvas>
@@ -1196,6 +1238,24 @@ export default function BrainViewer(
       <div
         className="viewer-controls"
       >
+        <label className="viewer-opacity">
+          Opacity
+          <input aria-label="Brain opacity" type="range" min="0.2" max="1" step="0.05" value={opacity} onChange={(event) => setOpacity(Number(event.target.value))} />
+        </label>
+        <label className="viewer-color">
+          <span>Surface</span>
+          <input aria-label="Surface color" type="color" value={surfaceColor} onChange={(event) => setSurfaceColor(event.target.value)} />
+        </label>
+        <label className="viewer-color">
+          <span>Regions</span>
+          <input aria-label="Region color" type="color" value={regionColor} onChange={(event) => setRegionColor(event.target.value)} />
+        </label>
+        <button type="button" title="Reset camera" onClick={() => setResetToken((value) => value + 1)}>
+          <RotateCcw size={13} />
+        </button>
+        <button type="button" title={isFullscreen ? "Exit fullscreen" : "Fullscreen"} onClick={toggleFullscreen}>
+          <Maximize2 size={13} />
+        </button>
 
         <span>
           DRAG TO ROTATE

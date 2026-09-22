@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, AlertTriangle, BarChart3 } from "lucide-react";
 
 import TopBar from "../components/TopBar";
 import BrainViewer from "../components/BrainViewer";
@@ -29,15 +29,22 @@ interface LivePrediction {
     feature: string;
     direction: string;
     contribution: number;
+    shap_value?: number;
   }>;
 }
 
 interface LiveMeasurements {
+  total_brain_volume_mm3?: number;
+  hemisphere_volumes_mm3?: {
+    left?: number;
+    right?: number;
+  };
   regions?: Record<
     string,
     {
       total_volume_mm3?: number;
       asymmetry_percent?: number;
+      brain_volume_percent?: number;
     }
   >;
 }
@@ -248,6 +255,23 @@ export default function LiveDemoResult() {
 
   const measurements = result.measurements;
   const prediction = result.prediction;
+  const explanation = prediction.explanation || [];
+  const regionRows = [
+    ["hippocampus", "Hippocampus"],
+    ["amygdala", "Amygdala"],
+    ["thalamus", "Thalamus"],
+    ["caudate", "Caudate"],
+    ["putamen", "Putamen"],
+    ["pallidum", "Pallidum"],
+    ["lateral_ventricle", "Lateral ventricles"],
+  ] as const;
+  const maxShap = Math.max(0.0001, ...explanation.map((item) => Math.abs(item.shap_value ?? item.contribution)));
+  const riskFactors = explanation.filter((item) => (item.shap_value ?? item.contribution) > 0).slice(0, 4);
+  const protectiveFactors = explanation.filter((item) => (item.shap_value ?? item.contribution) < 0).slice(0, 4);
+  const regionForFeature = (feature: string) => {
+    const normalized = feature.toLowerCase().replace(/left_|right_|_/g, " ");
+    return BRAIN_REGIONS.find((region) => normalized.includes(region.name.toLowerCase()))?.id;
+  };
 
   /* =======================================================
      LIVE GLB URL
@@ -542,6 +566,19 @@ export default function LiveDemoResult() {
             </strong>
 
           </div>
+          <div className="prediction-gauge" aria-label={`AD probability ${(prediction.probability_ad * 100).toFixed(1)} percent`}>
+            <div className="prediction-gauge-track">
+              <span style={{ width: `${Math.max(0, Math.min(100, prediction.probability_ad * 100))}%` }} />
+            </div>
+            <div className="prediction-gauge-labels"><span>Non-AD</span><strong>{(prediction.probability_ad * 100).toFixed(1)}% AD likelihood</strong><span>AD</span></div>
+          </div>
+          <div className="risk-summary">
+            <div><AlertTriangle size={15} /><strong>Risk-factor summary</strong><span>{riskFactors.length ? "Features increasing model risk" : "No positive contributors reported"}</span></div>
+            <div className="risk-factor-list">
+              {riskFactors.map((item, index) => <button type="button" key={`risk-${index}`} onClick={() => { const id = regionForFeature(item.feature); if (id) handleRegionSelect(id); }}><span>{item.feature}</span><b>+{Math.abs(item.shap_value ?? item.contribution).toFixed(3)}</b></button>)}
+            </div>
+            {protectiveFactors.length > 0 && <div className="protective-list"><span>Lower-risk contributors</span>{protectiveFactors.map((item, index) => <span key={`protective-${index}`}>{item.feature}</span>)}</div>}
+          </div>
 
           {/* Non-AD probability */}
 
@@ -595,36 +632,7 @@ export default function LiveDemoResult() {
 
         <div className="live-analysis-region-grid">
 
-          {[
-            [
-              "hippocampus",
-              "Hippocampus",
-            ],
-            [
-              "amygdala",
-              "Amygdala",
-            ],
-            [
-              "thalamus",
-              "Thalamus",
-            ],
-            [
-              "caudate",
-              "Caudate",
-            ],
-            [
-              "putamen",
-              "Putamen",
-            ],
-            [
-              "pallidum",
-              "Pallidum",
-            ],
-            [
-              "lateral_ventricle",
-              "Lateral ventricles",
-            ],
-          ].map(
+          {regionRows.map(
             ([key, label]) => {
 
               const region =
@@ -651,6 +659,7 @@ export default function LiveDemoResult() {
                     mm³
                   </strong>
 
+                  <div className="atrophy-bar"><span style={{ width: `${Math.min(100, Math.abs(region?.asymmetry_percent ?? 0) * 2)}%` }} /></div>
                   <small>
                     Asymmetry{" "}
                     {region?.asymmetry_percent != null
@@ -658,6 +667,20 @@ export default function LiveDemoResult() {
                           region.asymmetry_percent
                         ).toFixed(1)}%`
                       : "—"}
+                    {" · "}
+                    {region?.brain_volume_percent != null
+                      ? `${Number(region.brain_volume_percent).toFixed(2)}% of brain`
+                      : "percentage unavailable"}
+                    {" · "}
+                    <b className={
+                      (region?.asymmetry_percent ?? 0) >= 20
+                        ? "atrophy-warning"
+                        : "atrophy-normal"
+                    }>
+                      {(region?.asymmetry_percent ?? 0) >= 20
+                        ? "asymmetry flag"
+                        : "within screening threshold"}
+                    </b>
                   </small>
 
                 </div>
@@ -669,20 +692,80 @@ export default function LiveDemoResult() {
 
       </section>
 
+      <section className="live-analysis-result-card">
+        <span className="eyebrow">VOLUME COMPARISON</span>
+        <h2>Brain and hemisphere volumes</h2>
+        <div className="volume-summary-grid">
+          <div className="volume-summary-stat">
+            <span>Total brain volume</span>
+            <strong>
+              {measurements.total_brain_volume_mm3 != null
+                ? `${Math.round(measurements.total_brain_volume_mm3).toLocaleString()} mm³`
+                : "—"}
+            </strong>
+          </div>
+          <div className="volume-summary-stat">
+            <span>Left hemisphere</span>
+            <strong>
+              {measurements.hemisphere_volumes_mm3?.left != null
+                ? `${Math.round(measurements.hemisphere_volumes_mm3.left).toLocaleString()} mm³`
+                : "—"}
+            </strong>
+          </div>
+          <div className="volume-summary-stat">
+            <span>Right hemisphere</span>
+            <strong>
+              {measurements.hemisphere_volumes_mm3?.right != null
+                ? `${Math.round(measurements.hemisphere_volumes_mm3.right).toLocaleString()} mm³`
+                : "—"}
+            </strong>
+          </div>
+        </div>
+        <div className="volume-comparison-chart" role="img" aria-label="Regional volume comparison">
+          {regionRows.map(([key, label]) => {
+            const volume = measurements.regions?.[key]?.total_volume_mm3 ?? 0;
+            const maxVolume = Math.max(
+              1,
+              ...regionRows.map(([regionKey]) => measurements.regions?.[regionKey]?.total_volume_mm3 ?? 0),
+            );
+            return (
+              <div className="volume-chart-row" key={`volume-${key}`}>
+                <span>{label}</span>
+                <i><b style={{ width: `${(volume / maxVolume) * 100}%` }} /></i>
+                <strong>{volume ? Math.round(volume).toLocaleString() : "—"}</strong>
+              </div>
+            );
+          })}
+        </div>
+        <p className="measurement-disclaimer">
+          Atrophy indicators are screening signals based on bilateral asymmetry
+          only; they are not a clinical diagnosis or normative age comparison.
+        </p>
+      </section>
+
       {/* ===================================================
-          MODEL EXPLANATION
+          SHAP MODEL EXPLANATION
           =================================================== */}
 
       <section className="live-analysis-result-card">
 
         <span className="eyebrow">
-          MODEL EXPLANATION
+          SHAP MODEL EXPLANATION
         </span>
 
         <h2>
-          Top feature contributions
+          Top SHAP feature contributions
         </h2>
 
+        <div className="shap-chart" role="list" aria-label="SHAP feature contributions">
+          {explanation.map((item, index) => {
+            const value = item.shap_value ?? item.contribution;
+            const id = regionForFeature(item.feature);
+            return <button type="button" className={`shap-row ${value >= 0 ? "positive" : "negative"}`} key={`bar-${index}`} onClick={() => id && handleRegionSelect(id)} title={id ? "Highlight related brain region" : undefined}>
+              <span className="shap-name">{item.feature}</span><span className="shap-track"><i style={{ width: `${Math.abs(value) / maxShap * 100}%` }} /></span><b>{value >= 0 ? "+" : ""}{value.toFixed(4)}</b>
+            </button>;
+          })}
+        </div>
         <div className="live-analysis-explanation-grid">
 
           {(prediction.explanation || []).map(
@@ -706,10 +789,10 @@ export default function LiveDemoResult() {
                 </div>
 
                 <span>
-                  {item.contribution >= 0
+                  {(item.shap_value ?? item.contribution) >= 0
                     ? "+"
                     : ""}
-                  {item.contribution.toFixed(4)}
+                  {(item.shap_value ?? item.contribution).toFixed(4)}
                 </span>
 
               </div>
@@ -719,14 +802,16 @@ export default function LiveDemoResult() {
 
         </div>
 
+        <p style={{ marginTop: "0.9rem", color: "#4b5563" }}>
+          SHAP values show how each feature contributes to this subject's
+          model output relative to the training-data background. They are model
+          explanations, not causal or clinical conclusions.
+        </p>
+
       </section>
 
       {/* ===================================================
           ANALYSIS REPORT
-
-          NOTE:
-          ModelSummary was intentionally removed here.
-          The real live ML result is already displayed above.
           =================================================== */}
 
       <section className="live-analysis-report-card">

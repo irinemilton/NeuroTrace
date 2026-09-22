@@ -204,6 +204,26 @@ def measure_subject(
         dtype=np.float64,
     )
 
+    voxel_volume_mm3 = float(np.prod(spacing))
+    brain_mask = data > 0
+    brain_voxel_count = int(np.count_nonzero(brain_mask))
+    total_brain_volume_mm3 = float(
+        brain_voxel_count * voxel_volume_mm3
+    )
+
+    midpoint = data.shape[0] / 2.0
+    left_mask = brain_mask.copy()
+    right_mask = brain_mask.copy()
+    left_mask[: int(np.ceil(midpoint)), ...] = False
+    right_mask[int(np.floor(midpoint)) :, ...] = False
+
+    left_hemisphere_volume_mm3 = float(
+        np.count_nonzero(left_mask) * voxel_volume_mm3
+    )
+    right_hemisphere_volume_mm3 = float(
+        np.count_nonzero(right_mask) * voxel_volume_mm3
+    )
+
     measurements = {
         "segmentation_file": str(segmentation_path),
         "image_shape": [
@@ -212,9 +232,12 @@ def measure_subject(
         "voxel_spacing_mm": [
             float(x) for x in spacing
         ],
-        "voxel_volume_mm3": float(
-            np.prod(spacing)
-        ),
+        "voxel_volume_mm3": voxel_volume_mm3,
+        "total_brain_volume_mm3": total_brain_volume_mm3,
+        "hemisphere_volumes_mm3": {
+            "left": left_hemisphere_volume_mm3,
+            "right": right_hemisphere_volume_mm3,
+        },
         "regions": {},
     }
 
@@ -223,15 +246,23 @@ def measure_subject(
         right_label = labels[0]
         left_label = labels[1]
 
-        measurements["regions"][region_name] = (
-            measure_bilateral_region(
-                data,
-                affine,
-                spacing,
-                left_label,
-                right_label,
-            )
+        region_measurement = measure_bilateral_region(
+            data,
+            affine,
+            spacing,
+            left_label,
+            right_label,
         )
+        region_measurement["brain_volume_percent"] = (
+            float(
+                region_measurement["total_volume_mm3"]
+                / total_brain_volume_mm3
+                * 100.0
+            )
+            if total_brain_volume_mm3 > 0
+            else 0.0
+        )
+        measurements["regions"][region_name] = region_measurement
 
     return measurements
 
