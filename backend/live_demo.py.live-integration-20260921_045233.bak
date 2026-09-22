@@ -1,0 +1,440 @@
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from uuid import uuid4
+import json
+import re
+import shutil
+
+import joblib
+import nibabel as nib
+import numpy as np
+import pandas as pd
+from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
+
+from src.features.update_brain_features import extract_subject
+from src.features.measurements import measure_subject
+from src.segmentation.single_segment import segment_single_mri
+
+
+router = APIRouter()
+
+ROOT = Path(__file__).resolve().parents[1]
+
+MODEL_DIR = ROOT / "models" / "alzheimer"
+MODEL_PATH = MODEL_DIR / "neurotrace_alzheimer_model.joblib"
+META_PATH = MODEL_DIR / "neurotrace_feature_metadata.json"
+
+MODEL_OUTPUT_DIR = (
+    ROOT / "frontend" / "public" / "models" / "live_demo"
+)
+MODEL_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+
+# Labels used by the UNesT whole-brain segmentation.
+LABELS = {
+    5: "Right Amygdala",
+    6: "Left Amygdala",
+    8: "Right Caudate",
+    9: "Left Caudate",
+    16: "Right Hippocampus",
+    17: "Left Hippocampus",
+    20: "Right Lateral Ventricle",
+    21: "Left Lateral Ventricle",
+    22: "Right Pallidum",
+    23: "Left Pallidum",
+    24: "Right Putamen",
+    25: "Left Putamen",
+    26: "Right Thalamus",
+    27: "Left Thalamus",
+}
+
+
+def load_model():
+    if not MODEL_PATH.exists() or not META_PATH.exists():
+        raise RuntimeError("Alzheimer model or feature metadata is missing.")
+
+    model = joblib.load(MODEL_PATH)
+    metadata = json.loads(META_PATH.read_text(encoding="utf-8"))
+    features = metadata.get("features", [])
+
+    if len(features) != 141:
+        raise RuntimeError(
+            f"Expected 141 features, found {len(features)}"
+        )
+
+    return model, features
+
+
+def predict(model, features, values):
+    row = {
+        name: float(values.get(name, 0.0))
+        for name in features
+    }
+
+    frame = pd.DataFrame([row], columns=features)
+
+    pred = int(model.predict(frame)[0])
+    proba = model.predict_proba(frame)[0]
+    classes = list(model.classes_)
+
+    p_ad = (
+        float(proba[classes.index(1)])
+        if 1 in classes
+        else 0.0
+    )
+    p_non = (
+        float(proba[classes.index(0)])
+        if 0 in classes
+        else 0.0
+    )
+
+    explanation = []
+
+    try:
+        scaled = model.named_steps["scaler"].transform(frame)[0]
+        coef = model.named_steps["classifier"].coef_[0]
+
+        explanation = [
+            {
+                "feature": name,
+                "contribution": float(value),
+                "direction": "AD" if value > 0 else "Non-AD",
+            }
+            for name, value in zip(features, scaled * coef)
+        ]
+
+        explanation.sort(
+            key=lambda item: abs(item["contribution"]),
+            reverse=True,
+        )
+        explanation = explanation[:10]
+
+    except Exception:
+        pass
+
+    return {
+        "prediction": pred,
+        "classification": "AD" if pred else "Non-AD",
+        "probability_ad": p_ad,
+        "probability_non_ad": p_non,
+        "model": "Logistic Regression",
+        "model_C": 0.01,
+        "features_used": 141,
+        "explanation": explanation,
+    }
+
+
+def measurement_summary(path):
+    measurements = measure_subject(path)
+    regions = measurements.get("regions", {})
+
+    names = [
+        "hippocampus",
+        "amygdala",
+        "thalamus",
+        "caudate",
+        "putamen",
+        "pallidum",
+        "lateral_ventricle",
+    ]
+
+    return {
+        "image_shape": measurements.get("image_shape"),
+        "voxel_spacing_mm": measurements.get("voxel_spacing_mm"),
+        "voxel_volume_mm3": measurements.get("voxel_volume_mm3"),
+        "regions": {
+            name: {
+                "total_volume_mm3": regions[name].get(
+                    "total_volume_mm3"
+                ),
+                "asymmetry_percent": regions[name].get(
+                    "asymmetry_percent"
+                ),
+            }
+            for name in names
+            if name in regions
+        },
+    }
+
+
+def _add_mesh_for_mask(scene, mask, spacing, name):
+    """Create a mesh from one binary segmentation mask."""
+    from skimage.measure import marching_cubes
+    import trimesh
+
+    if not np.any(mask):
+        return False
+
+    try:
+        # Padding prevents an open surface when the structure touches
+        # the boundary of its local mask.
+        padded = np.pad(
+            mask.astype(np.uint8),
+            1,
+            mode="constant",
+            constant_values=0,
+        )
+
+        vertices, faces, _, _ = marching_cubes(
+            padded,
+            level=0.5,
+            spacing=spacing,
+            step_size=2,
+        )
+
+    except Exception:
+        return False
+
+    # marching_cubes was performed on a one-voxel padded array.
+    vertices -= np.asarray(spacing, dtype=np.float32)
+
+    mesh = trimesh.Trimesh(
+        vertices=vertices,
+        faces=faces,
+        process=False,
+    )
+
+    mesh.remove_unreferenced_vertices()
+
+    if len(mesh.vertices) == 0 or len(mesh.faces) == 0:
+        return False
+
+    mesh.visual.vertex_colors = np.tile(
+        np.array([105, 152, 189, 190], dtype=np.uint8),
+        (len(mesh.vertices), 1),
+    )
+
+    scene.add_geometry(mesh, node_name=name)
+    return True
+
+
+def make_glb(path):
+    """
+    Build a persistent GLB from a segmented NIfTI.
+
+    Quick Analysis and Full Pipeline both call this function, so both
+    workflows get the same 3D output path.
+    """
+    try:
+        import trimesh
+        from skimage.measure import marching_cubes  # noqa: F401
+    except Exception:
+        return None
+
+    try:
+        image = nib.load(str(path))
+        data = np.rint(
+            np.asarray(image.dataobj)
+        ).astype(np.int16)
+
+        zooms = image.header.get_zooms()
+        spacing = tuple(
+            max(float(value), 0.001)
+            for value in zooms[:3]
+        )
+
+        scene = trimesh.Scene()
+        made = 0
+
+        # First try the main anatomical labels.
+        for label, name in LABELS.items():
+            made += int(
+                _add_mesh_for_mask(
+                    scene,
+                    data == label,
+                    spacing,
+                    name,
+                )
+            )
+
+        # Fallback: if none of the expected labels were found,
+        # create one surface from every non-zero segmentation voxel.
+        #
+        # This makes Quick Analysis robust to a segmentation whose
+        # label set differs from the expected subset.
+        if made == 0:
+            combined_mask = data != 0
+
+            if np.any(combined_mask):
+                made += int(
+                    _add_mesh_for_mask(
+                        scene,
+                        combined_mask,
+                        spacing,
+                        "Brain Segmentation",
+                    )
+                )
+
+        if made == 0:
+            return None
+
+        token = uuid4().hex
+        output_path = MODEL_OUTPUT_DIR / f"{token}.glb"
+
+        scene.export(
+            output_path,
+            file_type="glb",
+        )
+
+        if not output_path.exists() or output_path.stat().st_size == 0:
+            return None
+
+        return token
+
+    except Exception:
+        return None
+
+
+def run_pipeline(seg_path, mode, filename):
+    model, features = load_model()
+
+    # The exact same feature extraction, ML inference and GLB
+    # generation are used for Quick and Full modes.
+    values = extract_subject("live_demo", seg_path)
+    token = make_glb(seg_path)
+
+    return {
+        "status": "success",
+        "mode": mode,
+        "input_filename": filename,
+        "segmentation_process": (
+            "included" if mode == "full" else "pre-computed"
+        ),
+        "feature_count": 141,
+        "measurements": measurement_summary(seg_path),
+        "prediction": predict(model, features, values),
+        "model_url": (
+            f"/api/live-demo/model/{token}.glb"
+            if token
+            else None
+        ),
+        "message": (
+            "Full raw MRI → UNesT → features → ML pipeline completed."
+            if mode == "full"
+            else
+            "Pre-segmented MRI → features → ML pipeline completed."
+        ),
+    }
+
+
+def validate(file):
+    name = (file.filename or "").lower()
+
+    if not (
+        name.endswith(".nii")
+        or name.endswith(".nii.gz")
+    ):
+        raise HTTPException(
+            400,
+            "Only .nii and .nii.gz files are supported.",
+        )
+
+
+def save(file, path):
+    with path.open("wb") as output:
+        shutil.copyfileobj(file.file, output)
+
+
+@router.post("/live-demo/quick")
+async def quick(file: UploadFile = File(...)):
+    validate(file)
+
+    with TemporaryDirectory(prefix="neurotrace_live_") as tmp:
+        path = Path(tmp) / "seg.nii.gz"
+        save(file, path)
+
+        try:
+            nib.load(str(path))
+        except Exception as exc:
+            raise HTTPException(
+                400,
+                f"Invalid NIfTI: {exc}",
+            )
+
+        try:
+            return run_pipeline(
+                path,
+                "quick",
+                file.filename or "uploaded.nii.gz",
+            )
+        except Exception as exc:
+            raise HTTPException(
+                500,
+                f"Quick analysis failed: {exc}",
+            )
+
+
+@router.post("/live-demo/full")
+async def full(file: UploadFile = File(...)):
+    validate(file)
+
+    with TemporaryDirectory(prefix="neurotrace_live_raw_") as tmp:
+        path = Path(tmp) / "raw.nii.gz"
+        save(file, path)
+
+        try:
+            nib.load(str(path))
+        except Exception as exc:
+            raise HTTPException(
+                400,
+                f"Invalid NIfTI: {exc}",
+            )
+
+        subject_id = f"live_{uuid4().hex[:10]}"
+
+        try:
+            seg = segment_single_mri(
+                path,
+                subject_id,
+            )
+
+            return run_pipeline(
+                seg,
+                "full",
+                file.filename or "uploaded.nii.gz",
+            )
+
+        except Exception as exc:
+            raise HTTPException(
+                500,
+                f"Full analysis failed: {exc}",
+            )
+
+        finally:
+            folder = (
+                ROOT
+                / "models"
+                / "wholeBrainSeg_Large_UNEST_segmentation"
+                / "eval"
+                / subject_id
+            )
+
+            if folder.exists():
+                shutil.rmtree(
+                    folder,
+                    ignore_errors=True,
+                )
+
+
+@router.get("/live-demo/model/{token}.glb")
+def model(token: str):
+    if not re.fullmatch(r"[0-9a-f]{32}", token):
+        raise HTTPException(
+            404,
+            "Model not found.",
+        )
+
+    path = MODEL_OUTPUT_DIR / f"{token}.glb"
+
+    if not path.exists():
+        raise HTTPException(
+            404,
+            "Model not found.",
+        )
+
+    return FileResponse(
+        path,
+        media_type="model/gltf-binary",
+        filename=path.name,
+    )

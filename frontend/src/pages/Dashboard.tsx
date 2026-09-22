@@ -200,6 +200,14 @@ export function Dashboard() {
                 <ArrowRight />
               </Link>
 
+              <Link
+                to="/live-demo"
+                className="dashboard-secondary-button"
+              >
+                <Brain />
+                Live Demo
+              </Link>
+
               <button
                 onClick={() => loadData(true)}
                 disabled={refreshing}

@@ -11,24 +11,16 @@ import {
   Suspense,
   useEffect,
   useMemo,
+  useState,
+  type CSSProperties,
 } from "react";
 
-import type { CSSProperties } from "react";
-
 import * as THREE from "three";
+
 
 /* =========================================================
    CONFIGURATION
    ========================================================= */
-
-/*
- * Default model used by the normal Brain Analysis page.
- *
- * Live Analysis can override this through the optional
- * `modelPath` prop.
- */
-const MODEL_PATH =
-  "/models/crl_104_clean_brain.glb";
 
 const TARGET_BRAIN_SIZE = 2.5;
 
@@ -37,27 +29,14 @@ const TARGET_BRAIN_SIZE = 2.5;
    TYPES
    ========================================================= */
 
-export interface BrainViewerProps {
+interface BrainViewerProps {
+  subjectId: string;
+
   selectedRegion: string | null;
 
   showSurface: boolean;
-
   showRegions: boolean;
-
   showLabels: boolean;
-
-  /*
-   * Optional dynamic GLB path.
-   *
-   * Example:
-   *
-   * /models/live_demo/live_quick_xxx_clean_brain.glb
-   *
-   * or:
-   *
-   * http://localhost:8000/models/live_demo/xxx.glb
-   */
-  modelPath?: string;
 
   onRegionSelect: (
     regionId: string | null,
@@ -67,7 +46,6 @@ export interface BrainViewerProps {
 
 interface RegionAnchor {
   center: THREE.Vector3;
-
   label: THREE.Vector3;
 }
 
@@ -77,41 +55,23 @@ interface RegionAnchor {
    ========================================================= */
 
 const REGION_MAP: Record<string, string> = {
-  Right_Hippocampus:
-    "hippocampus",
+  Right_Hippocampus: "hippocampus",
+  Left_Hippocampus: "hippocampus",
 
-  Left_Hippocampus:
-    "hippocampus",
+  Right_Amygdala: "amygdala",
+  Left_Amygdala: "amygdala",
 
-  Right_Amygdala:
-    "amygdala",
+  Right_Thalamus: "thalamus",
+  Left_Thalamus: "thalamus",
 
-  Left_Amygdala:
-    "amygdala",
+  Right_Caudate: "caudate",
+  Left_Caudate: "caudate",
 
-  Right_Thalamus:
-    "thalamus",
+  Right_Putamen: "putamen",
+  Left_Putamen: "putamen",
 
-  Left_Thalamus:
-    "thalamus",
-
-  Right_Caudate:
-    "caudate",
-
-  Left_Caudate:
-    "caudate",
-
-  Right_Putamen:
-    "putamen",
-
-  Left_Putamen:
-    "putamen",
-
-  Right_Pallidum:
-    "pallidum",
-
-  Left_Pallidum:
-    "pallidum",
+  Right_Pallidum: "pallidum",
+  Left_Pallidum: "pallidum",
 
   Right_Lateral_Ventricle:
     "lateral-ventricle",
@@ -126,24 +86,12 @@ const REGION_MAP: Record<string, string> = {
    ========================================================= */
 
 const REGION_LABELS: Record<string, string> = {
-  hippocampus:
-    "Hippocampus",
-
-  amygdala:
-    "Amygdala",
-
-  thalamus:
-    "Thalamus",
-
-  caudate:
-    "Caudate",
-
-  putamen:
-    "Putamen",
-
-  pallidum:
-    "Pallidum",
-
+  hippocampus: "Hippocampus",
+  amygdala: "Amygdala",
+  thalamus: "Thalamus",
+  caudate: "Caudate",
+  putamen: "Putamen",
+  pallidum: "Pallidum",
   "lateral-ventricle":
     "Lateral Ventricle",
 };
@@ -224,26 +172,19 @@ const LABEL_STYLE: CSSProperties = {
    ========================================================= */
 
 function BrainModel({
+  modelPath,
   selectedRegion,
   showSurface,
   showRegions,
   showLabels,
-  modelPath,
   onRegionSelect,
-}: BrainViewerProps) {
+}: BrainViewerProps & {
+  modelPath: string;
+}) {
 
-  /*
-   * IMPORTANT:
-   *
-   * If modelPath is provided, use the live-generated GLB.
-   *
-   * Otherwise fall back to the original static brain.
-   */
-  const activeModelPath =
-    modelPath || MODEL_PATH;
-
-  const { scene } =
-    useGLTF(activeModelPath);
+  const {
+    scene,
+  } = useGLTF(modelPath);
 
 
   /* =======================================================
@@ -252,10 +193,6 @@ function BrainModel({
 
   const model = useMemo(() => {
 
-    /*
-     * Clone the GLTF scene so that changing one viewer
-     * does not mutate the cached GLTF scene.
-     */
     const clone =
       scene.clone(true);
 
@@ -269,15 +206,19 @@ function BrainModel({
         clone,
       );
 
+
     const originalCenter =
       new THREE.Vector3();
+
 
     const originalSize =
       new THREE.Vector3();
 
+
     bounds.getCenter(
       originalCenter,
     );
+
 
     bounds.getSize(
       originalSize,
@@ -295,11 +236,13 @@ function BrainModel({
         originalSize.z,
       );
 
+
     const scale =
       maxDimension > 0
         ? TARGET_BRAIN_SIZE /
           maxDimension
         : 1;
+
 
     clone.scale.setScalar(
       scale,
@@ -329,11 +272,9 @@ function BrainModel({
         return;
       }
 
-      /*
-       * Prevent the browser from aggressively
-       * culling anatomical meshes.
-       */
-      object.frustumCulled = false;
+
+      object.frustumCulled =
+        false;
 
 
       /* ================================================
@@ -348,11 +289,13 @@ function BrainModel({
         object.visible =
           showSurface;
 
+
         const material =
           object.material instanceof
           THREE.MeshStandardMaterial
             ? object.material.clone()
             : object.material;
+
 
         if (
           material instanceof
@@ -379,8 +322,10 @@ function BrainModel({
             false;
         }
 
+
         object.material =
           material;
+
 
         return;
       }
@@ -395,15 +340,12 @@ function BrainModel({
           object.name
         ];
 
+
       if (!regionId) {
         return;
       }
 
 
-      /*
-       * Store region ID directly on the
-       * cloned mesh for click handling.
-       */
       object.userData.regionId =
         regionId;
 
@@ -454,10 +396,6 @@ function BrainModel({
     });
 
 
-    /* -------------------------------------------------------
-       Force transform update
-       ------------------------------------------------------- */
-
     clone.updateMatrixWorld(
       true,
     );
@@ -466,8 +404,7 @@ function BrainModel({
     console.log(
       "NeuroTrace renderer:",
       {
-        modelPath:
-          activeModelPath,
+        modelPath,
 
         originalSize: {
           x: originalSize.x,
@@ -490,7 +427,7 @@ function BrainModel({
 
   }, [
     scene,
-    activeModelPath,
+    modelPath,
     showSurface,
     showRegions,
   ]);
@@ -514,6 +451,7 @@ function BrainModel({
       const regionId =
         object.userData.regionId;
 
+
       if (!regionId) {
         return;
       }
@@ -524,6 +462,7 @@ function BrainModel({
         THREE.MeshStandardMaterial
           ? object.material
           : null;
+
 
       if (!material) {
         return;
@@ -567,7 +506,6 @@ function BrainModel({
         material.opacity =
           0.88;
       }
-
     });
 
   }, [
@@ -588,9 +526,10 @@ function BrainModel({
       );
 
 
-      const regionBounds:
-        Record<string, THREE.Box3> =
-        {};
+      const regionBounds: Record<
+        string,
+        THREE.Box3
+      > = {};
 
 
       /* ---------------------------------------------------
@@ -608,6 +547,7 @@ function BrainModel({
 
         const regionId =
           object.userData.regionId;
+
 
         if (!regionId) {
           return;
@@ -639,18 +579,17 @@ function BrainModel({
             meshBounds,
           );
         }
-
       });
 
 
       /* ---------------------------------------------------
-         Convert world coordinates to model-local
-         coordinates.
+         Convert world coordinates to model-local coordinates
          --------------------------------------------------- */
 
-      const anchors:
-        Record<string, RegionAnchor> =
-        {};
+      const anchors: Record<
+        string,
+        RegionAnchor
+      > = {};
 
 
       Object.entries(
@@ -667,19 +606,12 @@ function BrainModel({
           );
 
 
-          /*
-           * World → model local
-           */
           const localCenter =
             model.worldToLocal(
               worldCenter.clone(),
             );
 
 
-          /*
-           * Create label position
-           * in world space.
-           */
           const worldLabel =
             worldCenter
               .clone()
@@ -695,9 +627,6 @@ function BrainModel({
               );
 
 
-          /*
-           * World → model local
-           */
           const localLabel =
             model.worldToLocal(
               worldLabel.clone(),
@@ -713,7 +642,6 @@ function BrainModel({
             label:
               localLabel,
           };
-
         },
       );
 
@@ -737,227 +665,222 @@ function BrainModel({
      REGION CLICK
      ======================================================= */
 
-  const handleRegionClick =
-    (event: any) => {
+  const handleRegionClick = (
+    event: any,
+  ) => {
 
-      event.stopPropagation();
-
-
-      const regionId =
-        event.object
-          ?.userData
-          ?.regionId;
+    event.stopPropagation();
 
 
-      if (regionId) {
+    const regionId =
+      event.object?.userData
+        ?.regionId;
 
-        onRegionSelect(
-          regionId,
-        );
 
-      }
+    if (regionId) {
 
-    };
+      onRegionSelect(
+        regionId,
+      );
+    }
+  };
 
 
   /* =======================================================
      LABEL COMPONENT
      ======================================================= */
 
-  const renderRegionLabel =
-    (
-      regionId: string,
-      anchor: RegionAnchor,
-    ) => {
+  const renderRegionLabel = (
+    regionId: string,
+    anchor: RegionAnchor,
+  ) => {
 
-      const selected =
-        selectedRegion ===
-        regionId;
-
-
-      const label =
-        REGION_LABELS[
-          regionId
-        ] ?? regionId;
+    const selected =
+      selectedRegion ===
+      regionId;
 
 
-      return (
-        <group
-          key={regionId}
+    const label =
+      REGION_LABELS[
+        regionId
+      ] ?? regionId;
+
+
+    return (
+      <group
+        key={regionId}
+      >
+
+        {/* ===============================================
+            ANATOMICAL ANCHOR DOT
+            =============================================== */}
+
+        <mesh
+          position={
+            anchor.center
+          }
         >
 
-          {/* ===============================================
-              ANATOMICAL ANCHOR DOT
-              =============================================== */}
-
-          <mesh
-            position={
-              anchor.center
-            }
-          >
-
-            <sphereGeometry
-              args={[
-                selected
-                  ? 0.022
-                  : 0.015,
-
-                12,
-
-                12,
-              ]}
-            />
-
-            <meshBasicMaterial
-              color={
-                selected
-                  ? "#27698f"
-                  : "#71869a"
-              }
-            />
-
-          </mesh>
-
-
-          {/* ===============================================
-              LEADER LINE
-              =============================================== */}
-
-          <Line
-            points={[
-              anchor.center.toArray(),
-
-              anchor.label.toArray(),
+          <sphereGeometry
+            args={[
+              selected
+                ? 2.2
+                : 1.5,
+              12,
+              12,
             ]}
+          />
+
+          <meshBasicMaterial
             color={
               selected
                 ? "#27698f"
                 : "#71869a"
             }
-            lineWidth={
-              selected
-                ? 2
-                : 1
-            }
-            transparent
-            opacity={
-              selected
-                ? 1
-                : 0.7
-            }
           />
 
+        </mesh>
 
-          {/* ===============================================
-              LABEL CARD
-              =============================================== */}
 
-          <Html
-            position={
-              anchor.label
-            }
-            center
-            transform={false}
-            zIndexRange={[
-              100,
-              0,
-            ]}
-            style={
-              LABEL_STYLE
-            }
-          >
+        {/* ===============================================
+            LEADER LINE
+            =============================================== */}
 
-            <div
-              style={{
-                display: "flex",
+        <Line
+          points={[
+            anchor.center.toArray(),
+            anchor.label.toArray(),
+          ]}
+          color={
+            selected
+              ? "#27698f"
+              : "#71869a"
+          }
+          lineWidth={
+            selected
+              ? 2
+              : 1
+          }
+          transparent
+          opacity={
+            selected
+              ? 1
+              : 0.7
+          }
+        />
 
-                alignItems:
-                  "center",
 
-                gap: "6px",
+        {/* ===============================================
+            LABEL CARD
+            =============================================== */}
 
-                padding:
-                  "5px 8px",
+        <Html
+          position={
+            anchor.label
+          }
+          center
+          transform={false}
+          zIndexRange={[
+            100,
+            0,
+          ]}
+          style={
+            LABEL_STYLE
+          }
+        >
 
-                borderRadius:
-                  "7px",
+          <div
+            style={{
+              display:
+                "flex",
 
-                border: selected
+              alignItems:
+                "center",
+
+              gap:
+                "6px",
+
+              padding:
+                "5px 8px",
+
+              borderRadius:
+                "7px",
+
+              border:
+                selected
                   ? "1px solid #4c9bd1"
                   : "1px solid rgba(120,140,155,0.35)",
 
+              background:
+                selected
+                  ? "rgba(235,247,255,0.98)"
+                  : "rgba(255,255,255,0.96)",
+
+              boxShadow:
+                selected
+                  ? "0 4px 14px rgba(39,105,143,0.20)"
+                  : "0 2px 8px rgba(30,50,65,0.14)",
+
+              backdropFilter:
+                "blur(6px)",
+
+              color:
+                selected
+                  ? "#1f5877"
+                  : "#344654",
+
+              fontFamily:
+                "Inter, system-ui, sans-serif",
+
+              fontSize:
+                "11px",
+
+              fontWeight:
+                600,
+
+              lineHeight:
+                "14px",
+
+              letterSpacing:
+                "0.01em",
+
+              whiteSpace:
+                "nowrap",
+            }}
+          >
+
+            <span
+              style={{
+                width:
+                  "6px",
+
+                height:
+                  "6px",
+
+                borderRadius:
+                  "50%",
+
                 background:
                   selected
-                    ? "rgba(235,247,255,0.98)"
-                    : "rgba(255,255,255,0.96)",
+                    ? "#27698f"
+                    : "#71869a",
 
-                boxShadow:
-                  selected
-                    ? "0 4px 14px rgba(39,105,143,0.20)"
-                    : "0 2px 8px rgba(30,50,65,0.14)",
-
-                backdropFilter:
-                  "blur(6px)",
-
-                color:
-                  selected
-                    ? "#1f5877"
-                    : "#344654",
-
-                fontFamily:
-                  "Inter, system-ui, sans-serif",
-
-                fontSize:
-                  "11px",
-
-                fontWeight:
-                  600,
-
-                lineHeight:
-                  "14px",
-
-                letterSpacing:
-                  "0.01em",
-
-                whiteSpace:
-                  "nowrap",
+                flexShrink:
+                  0,
               }}
-            >
+            />
 
-              {/* Status indicator */}
+            <span>
+              {label}
+            </span>
 
-              <span
-                style={{
-                  width: "6px",
+          </div>
 
-                  height: "6px",
+        </Html>
 
-                  borderRadius:
-                    "50%",
-
-                  background:
-                    selected
-                      ? "#27698f"
-                      : "#71869a",
-
-                  flexShrink: 0,
-                }}
-              />
-
-
-              {/* Region name */}
-
-              <span>
-                {label}
-              </span>
-
-            </div>
-
-          </Html>
-
-        </group>
-      );
-    };
+      </group>
+    );
+  };
 
 
   /* =======================================================
@@ -1041,11 +964,77 @@ function countMeshes(
 
 
 /* =========================================================
+   MODEL AVAILABILITY CHECK
+   ========================================================= */
+
+async function checkModelExists(
+  modelPath: string,
+): Promise<boolean> {
+
+  try {
+
+    const response =
+      await fetch(
+        modelPath,
+        {
+          method:
+            "HEAD",
+
+          cache:
+            "no-store",
+        },
+      );
+
+
+    if (!response.ok) {
+      return false;
+    }
+
+
+    /*
+     * IMPORTANT:
+     *
+     * Vite can return index.html
+     * for a missing static asset.
+     *
+     * That response may still be
+     * HTTP 200, so response.ok alone
+     * is NOT enough.
+     */
+
+    const contentType =
+      (
+        response.headers.get(
+          "content-type",
+        ) ?? ""
+      ).toLowerCase();
+
+
+    if (
+      contentType.includes(
+        "text/html",
+      )
+    ) {
+      return false;
+    }
+
+
+    return true;
+
+  } catch {
+    return false;
+  }
+}
+
+
+/* =========================================================
    SCENE
    ========================================================= */
 
 function Scene(
-  props: BrainViewerProps,
+  props: BrainViewerProps & {
+    modelPath: string;
+  },
 ) {
 
   return (
@@ -1107,15 +1096,10 @@ function Scene(
 
       <OrbitControls
         makeDefault
-
         enableDamping
-
         dampingFactor={0.08}
-
         enablePan={false}
-
         minDistance={1.5}
-
         maxDistance={7}
       />
 
@@ -1132,12 +1116,177 @@ export default function BrainViewer(
   props: BrainViewerProps,
 ) {
 
+  const {
+    subjectId,
+  } = props;
+
+
+  /* -------------------------------------------------------
+     Subject-specific GLB path
+     ------------------------------------------------------- */
+
+  const modelPath =
+    subjectId
+      ? `/models/${encodeURIComponent(
+          subjectId,
+        )}_clean_brain.glb`
+      : "";
+
+
+  const [
+    modelStatus,
+    setModelStatus,
+  ] = useState<
+    "idle" |
+    "checking" |
+    "available" |
+    "missing"
+  >(
+    subjectId
+      ? "checking"
+      : "idle",
+  );
+
+
+  /* -------------------------------------------------------
+     Check GLB before mounting useGLTF
+     ------------------------------------------------------- */
+
+  useEffect(() => {
+
+    let cancelled =
+      false;
+
+
+    if (!subjectId) {
+
+      setModelStatus(
+        "idle",
+      );
+
+      return () => {
+        cancelled = true;
+      };
+    }
+
+
+    setModelStatus(
+      "checking",
+    );
+
+
+    async function checkModel() {
+
+      const exists =
+        await checkModelExists(
+          modelPath,
+        );
+
+
+      if (cancelled) {
+        return;
+      }
+
+
+      setModelStatus(
+        exists
+          ? "available"
+          : "missing",
+      );
+    }
+
+
+    checkModel();
+
+
+    return () => {
+      cancelled = true;
+    };
+
+  }, [
+    subjectId,
+    modelPath,
+  ]);
+
+
+  /* -------------------------------------------------------
+     No subject
+     ------------------------------------------------------- */
+
+  if (!subjectId) {
+
+    return (
+      <div className="brain-viewer">
+
+        <ViewerLabel />
+
+        <ViewerMessage
+          title="No subject selected"
+          message="Select an MRI subject to begin the 3D analysis."
+        />
+
+      </div>
+    );
+  }
+
+
+  /* -------------------------------------------------------
+     Checking
+     ------------------------------------------------------- */
+
+  if (
+    modelStatus ===
+    "checking"
+  ) {
+
+    return (
+      <div className="brain-viewer">
+
+        <ViewerLabel />
+
+        <ViewerMessage
+          title="Loading 3D model"
+          message={`Checking the subject-specific model for ${subjectId}.`}
+        />
+
+      </div>
+    );
+  }
+
+
+  /* -------------------------------------------------------
+     Missing model
+     ------------------------------------------------------- */
+
+  if (
+    modelStatus ===
+    "missing"
+  ) {
+
+    return (
+      <div className="brain-viewer">
+
+        <ViewerLabel />
+
+        <ViewerMessage
+          title="3D model not available"
+          message={`Segmentation may be ready for ${subjectId}, but the subject-specific GLB has not been generated yet.`}
+        />
+
+      </div>
+    );
+  }
+
+
+  /* -------------------------------------------------------
+     Render subject-specific model
+     ------------------------------------------------------- */
+
   return (
-    <div
-      className="brain-viewer"
-    >
+    <div className="brain-viewer">
 
       <Canvas
+        key={modelPath}
         camera={{
           position: [
             0,
@@ -1158,7 +1307,8 @@ export default function BrainViewer(
         ]}
 
         gl={{
-          antialias: true,
+          antialias:
+            true,
 
           powerPreference:
             "high-performance",
@@ -1166,7 +1316,11 @@ export default function BrainViewer(
       >
 
         <Scene
+          key={modelPath}
           {...props}
+          modelPath={
+            modelPath
+          }
         />
 
       </Canvas>
@@ -1176,15 +1330,23 @@ export default function BrainViewer(
           STATUS
           ============================================= */}
 
-      <div
-        className="viewer-label"
-      >
+      <div className="viewer-label">
 
-        <span
-          className="viewer-live-dot"
-        />
+        <span className="viewer-live-dot" />
 
         3D MRI SEGMENTATION
+
+        <span
+          style={{
+            marginLeft:
+              "5px",
+
+            color:
+              "#52616d",
+          }}
+        >
+          · {subjectId}
+        </span>
 
       </div>
 
@@ -1193,9 +1355,7 @@ export default function BrainViewer(
           CONTROLS
           ============================================= */}
 
-      <div
-        className="viewer-controls"
-      >
+      <div className="viewer-controls">
 
         <span>
           DRAG TO ROTATE
@@ -1213,15 +1373,118 @@ export default function BrainViewer(
 
 
 /* =========================================================
-   PRELOAD DEFAULT MODEL
+   VIEWER LABEL
    ========================================================= */
 
-/*
- * Only preload the original static model.
- *
- * Dynamic live-demo models are loaded automatically by
- * useGLTF() when modelPath is supplied.
- */
-useGLTF.preload(
-  MODEL_PATH,
-);
+function ViewerLabel() {
+
+  return (
+    <div className="viewer-label">
+
+      <span className="viewer-live-dot" />
+
+      3D MRI SEGMENTATION
+
+    </div>
+  );
+}
+
+
+/* =========================================================
+   VIEWER MESSAGE
+   ========================================================= */
+
+function ViewerMessage({
+  title,
+  message,
+}: {
+  title: string;
+  message: string;
+}) {
+
+  return (
+    <div
+      style={{
+        position:
+          "absolute",
+
+        inset: 0,
+
+        display:
+          "flex",
+
+        alignItems:
+          "center",
+
+        justifyContent:
+          "center",
+
+        padding:
+          "24px",
+      }}
+    >
+
+      <div
+        style={{
+          maxWidth:
+            "380px",
+
+          padding:
+            "28px",
+
+          textAlign:
+            "center",
+
+          color:
+            "#64748b",
+        }}
+      >
+
+        <div
+          style={{
+            fontSize:
+              "34px",
+
+            marginBottom:
+              "12px",
+          }}
+        >
+          🧠
+        </div>
+
+
+        <h3
+          style={{
+            margin:
+              "0 0 8px",
+
+            color:
+              "#17202a",
+
+            fontSize:
+              "18px",
+          }}
+        >
+          {title}
+        </h3>
+
+
+        <p
+          style={{
+            margin: 0,
+
+            lineHeight:
+              1.6,
+
+            fontSize:
+              "13px",
+          }}
+        >
+          {message}
+        </p>
+
+      </div>
+
+    </div>
+  );
+}

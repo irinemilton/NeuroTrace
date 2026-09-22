@@ -1,0 +1,653 @@
+import { Suspense, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  ArrowLeft,
+  Brain,
+  CheckCircle2,
+  Loader2,
+  Upload,
+  Zap,
+} from "lucide-react";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, useGLTF } from "@react-three/drei";
+import * as THREE from "three";
+
+const API = "http://127.0.0.1:8000";
+
+function BrainModel({ url }: { url: string }) {
+  const { scene } = useGLTF(url);
+
+  const cloned = useMemo(() => {
+    const model = scene.clone(true);
+
+    let meshCount = 0;
+
+    model.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+
+      meshCount += 1;
+
+      object.visible = true;
+      object.frustumCulled = false;
+
+      const materials = Array.isArray(object.material)
+        ? object.material
+        : [object.material];
+
+      materials.forEach((material) => {
+        if (!material) return;
+
+        // Make the generated GLB visible regardless of how trimesh
+        // encoded its material/vertex-color information.
+        if ("color" in material) {
+          (material as THREE.MeshStandardMaterial).color.set("#6998bd");
+        }
+
+        if ("transparent" in material) {
+          material.transparent = false;
+        }
+
+        if ("opacity" in material) {
+          material.opacity = 1;
+        }
+
+        material.side = THREE.DoubleSide;
+        material.needsUpdate = true;
+      });
+    });
+
+    const box = new THREE.Box3().setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+
+    const maxDimension = Math.max(
+      size.x,
+      size.y,
+      size.z,
+      0.001
+    );
+
+    const scale = 2.8 / maxDimension;
+
+    // IMPORTANT:
+    // Scale first, then apply the scaled negative center.
+    // Otherwise a large NIfTI-world-space center can leave the
+    // normalized model far outside the camera frustum.
+    model.scale.setScalar(scale);
+    model.position.copy(center).multiplyScalar(-scale);
+
+    // Keep the normalized model centered at the origin.
+    model.position.z = -center.z * scale;
+
+    console.log(
+      "[NeuroTrace 3D]",
+      "meshes:",
+      meshCount,
+      "size:",
+      size.toArray(),
+      "center:",
+      center.toArray(),
+      "scale:",
+      scale,
+      "position:",
+      model.position.toArray()
+    );
+
+    return model;
+  }, [scene]);
+
+  return <primitive object={cloned} />;
+}
+
+function BrainScene({ url }: { url: string }) {
+  return (
+    <>
+      <ambientLight intensity={2.2} />
+      <hemisphereLight
+        intensity={1.8}
+        color="#ffffff"
+        groundColor="#dce5eb"
+      />
+      <directionalLight
+        position={[5, 6, 8]}
+        intensity={3}
+      />
+      <directionalLight
+        position={[-5, 2, 4]}
+        intensity={1.5}
+      />
+
+      <Suspense fallback={null}>
+        <BrainModel url={url} />
+      </Suspense>
+
+      <OrbitControls
+        enableDamping
+        dampingFactor={0.08}
+        minDistance={1.5}
+        maxDistance={8}
+      />
+    </>
+  );
+}
+
+type Mode = "quick" | "full";
+
+export default function LiveDemo() {
+  const nav = useNavigate();
+
+  const [mode, setMode] = useState<Mode>("quick");
+  const [file, setFile] = useState<File | null>(null);
+  const [result, setResult] = useState<any>(null);
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function chooseMode(next: Mode) {
+    setMode(next);
+    setFile(null);
+    setResult(null);
+    setError(null);
+  }
+
+  async function run() {
+    if (!file) {
+      setError("Choose a NIfTI file first.");
+      return;
+    }
+
+    setRunning(true);
+    setError(null);
+    setResult(null);
+
+    const form = new FormData();
+    form.append("file", file);
+
+    try {
+      const response = await fetch(
+        `${API}/api/live-demo/${mode}`,
+        {
+          method: "POST",
+          body: form,
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Analysis failed."
+        );
+      }
+
+      console.log("[NeuroTrace] analysis result:", data);
+      console.log(
+        "[NeuroTrace] model URL:",
+        data.model_url
+      );
+
+      setResult(data);
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Analysis failed."
+      );
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  const confidence = result
+    ? Math.max(
+        result.prediction.probability_ad,
+        result.prediction.probability_non_ad
+      )
+    : 0;
+
+  const probabilityAd = result
+    ? result.prediction.probability_ad * 100
+    : 0;
+
+  const modelUrl = result?.model_url
+    ? `${API}${result.model_url}`
+    : null;
+
+  return (
+    <div className="live-demo-page">
+      <header className="live-demo-topbar">
+        <div className="live-demo-brand">
+          <div className="live-demo-brand-icon">
+            <Brain />
+          </div>
+
+          <div>
+            <div className="live-demo-brand-name">
+              NeuroTrace
+            </div>
+
+            <div className="live-demo-brand-subtitle">
+              Live Demonstration
+            </div>
+          </div>
+        </div>
+
+        <button
+          className="live-demo-back"
+          onClick={() => nav("/")}
+        >
+          <ArrowLeft />
+          Dashboard
+        </button>
+      </header>
+
+      <main className="live-demo-content">
+        <section className="live-demo-hero">
+          <div className="live-demo-eyebrow">
+            Research Workspace · Live Demo
+          </div>
+
+          <div className="live-demo-hero-row">
+            <div>
+              <h1>MRI Analysis Demonstration</h1>
+
+              <p>
+                Upload a T1 MRI and run the NeuroTrace
+                analysis pipeline from segmentation to
+                interpretable ML output.
+              </p>
+            </div>
+
+            <div className="live-demo-hero-icon">
+              <Brain />
+            </div>
+          </div>
+
+          <div className="live-demo-mode-grid">
+            <button
+              className={`live-demo-mode ${
+                mode === "quick" ? "active" : ""
+              }`}
+              onClick={() => chooseMode("quick")}
+            >
+              <div className="live-demo-mode-icon">
+                ⚡
+              </div>
+
+              <div className="live-demo-mode-title">
+                Quick Analysis
+              </div>
+
+              <div className="live-demo-mode-tag">
+                PRE-SEGMENTED
+              </div>
+
+              <p>
+                Use an existing UNesT segmentation for
+                fast feature extraction, ML and 3D
+                demonstration.
+              </p>
+            </button>
+
+            <button
+              className={`live-demo-mode ${
+                mode === "full" ? "active" : ""
+              }`}
+              onClick={() => chooseMode("full")}
+            >
+              <div className="live-demo-mode-icon">
+                🧠
+              </div>
+
+              <div className="live-demo-mode-title">
+                Full Pipeline
+              </div>
+
+              <div className="live-demo-mode-tag">
+                RAW MRI + UNEST
+              </div>
+
+              <p>
+                Use a raw T1 MRI and run the actual UNesT
+                segmentation before feature extraction
+                and ML.
+              </p>
+            </button>
+          </div>
+        </section>
+
+        <section className="live-demo-work-grid">
+          <div className="live-demo-card upload-card">
+            <div className="live-demo-card-eyebrow">
+              {mode === "quick"
+                ? "Pre-segmented input"
+                : "Raw T1 input"}
+            </div>
+
+            <label className="live-demo-dropzone">
+              <input
+                type="file"
+                accept=".nii,.nii.gz"
+                onChange={(e) => {
+                  setFile(
+                    e.target.files?.[0] ?? null
+                  );
+                  setResult(null);
+                  setError(null);
+                }}
+              />
+
+              <div className="live-demo-upload-icon">
+                <Upload />
+              </div>
+
+              <div className="live-demo-drop-title">
+                Choose NIfTI from File Explorer
+              </div>
+
+              <div className="live-demo-drop-subtitle">
+                {mode === "quick"
+                  ? "Select a UNesT segmentation (.nii or .nii.gz)"
+                  : "Select a raw T1 MRI (.nii or .nii.gz)"}
+              </div>
+            </label>
+
+            {file && (
+              <div className="live-demo-file">
+                <div className="live-demo-file-name">
+                  {file.name}
+                </div>
+
+                <div className="live-demo-file-meta">
+                  {(file.size / 1024 / 1024).toFixed(1)}
+                  {" MB · ready"}
+                </div>
+              </div>
+            )}
+
+            <button
+              className="live-demo-run"
+              onClick={run}
+              disabled={!file || running}
+            >
+              {running ? (
+                <>
+                  <Loader2 className="spinning" />
+                  {mode === "full"
+                    ? "Running UNesT + analysis..."
+                    : "Analyzing segmentation..."}
+                </>
+              ) : (
+                <>
+                  <Zap />
+                  Run{" "}
+                  {mode === "quick"
+                    ? "Quick Analysis"
+                    : "Full Pipeline"}
+                </>
+              )}
+            </button>
+
+            <div className="live-demo-help">
+              {mode === "quick"
+                ? "UNesT segmentation is pre-computed for the rapid demonstration."
+                : "CPU-based UNesT inference can take several minutes."}
+            </div>
+
+            {error && (
+              <div className="live-demo-error">
+                {error}
+              </div>
+            )}
+          </div>
+
+          <div className="live-demo-card pipeline-card">
+            <div className="live-demo-card-header">
+              <div>
+                <div className="live-demo-card-eyebrow">
+                  Pipeline
+                </div>
+
+                <h2>
+                  {mode === "quick"
+                    ? "Pre-segmented → Features → ML"
+                    : "Raw MRI → UNesT → Features → ML"}
+                </h2>
+              </div>
+
+              {result && (
+                <CheckCircle2 className="live-demo-success-icon" />
+              )}
+            </div>
+
+            <div className="live-demo-steps">
+              {(mode === "quick"
+                ? [
+                    "Segmentation loaded",
+                    "141 features",
+                    "ML inference",
+                    "3D + result",
+                  ]
+                : [
+                    "UNesT segmentation",
+                    "141 features",
+                    "ML inference",
+                    "3D + result",
+                  ]
+              ).map((step, index) => (
+                <div
+                  className="live-demo-step"
+                  key={step}
+                >
+                  <span>
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <strong>{step}</strong>
+                </div>
+              ))}
+            </div>
+
+            {result ? (
+              <div className="live-demo-result-grid">
+                <div className="live-demo-result-box">
+                  <div className="live-demo-result-eyebrow">
+                    ML result
+                  </div>
+
+                  <div className="live-demo-result-value">
+                    {result.prediction.classification}
+                  </div>
+
+                  <div className="live-demo-result-meta">
+                    AD probability{" "}
+                    {probabilityAd.toFixed(1)}%
+                  </div>
+
+                  <div className="live-demo-confidence">
+                    <div
+                      style={{
+                        width: `${confidence * 100}%`,
+                      }}
+                    />
+                  </div>
+
+                  <div className="live-demo-model-note">
+                    Logistic Regression · C=0.01 ·
+                    141 MRI features
+                  </div>
+                </div>
+
+                <div className="live-demo-result-box">
+                  <div className="live-demo-result-eyebrow">
+                    MRI summary
+                  </div>
+
+                  <div className="live-demo-mini-grid">
+                    <Mini
+                      label="Features"
+                      value="141"
+                    />
+
+                    <Mini
+                      label="Voxel"
+                      value={`${result.measurements.voxel_volume_mm3 ?? "—"} mm³`}
+                    />
+
+                    <Mini
+                      label="Hippocampus"
+                      value={`${result.measurements.regions?.hippocampus?.total_volume_mm3?.toFixed(0) ?? "—"} mm³`}
+                    />
+
+                    <Mini
+                      label="Asymmetry"
+                      value={`${result.measurements.regions?.hippocampus?.asymmetry_percent?.toFixed(1) ?? "—"}%`}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="live-demo-empty">
+                <div className="live-demo-empty-icon">
+                  <Zap />
+                </div>
+
+                <div>
+                  <strong>
+                    Ready for analysis
+                  </strong>
+
+                  <p>
+                    Upload an MRI above to run the
+                    selected workflow.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {modelUrl && (
+          <section className="live-demo-card live-demo-model-card">
+            <div className="live-demo-card-header model-header">
+              <div>
+                <div className="live-demo-card-eyebrow">
+                  3D MRI segmentation
+                </div>
+
+                <h2>
+                  Segmentation-derived brain model
+                </h2>
+
+                <p>
+                  Generated from the uploaded
+                  segmentation labels.
+                </p>
+              </div>
+            </div>
+
+            <div className="live-demo-canvas">
+              <Canvas
+                dpr={[1, 2]}
+                gl={{
+                  antialias: true,
+                  alpha: false,
+                }}
+                camera={{
+                  position: [0, 0, 3.8],
+                  fov: 45,
+                  near: 0.01,
+                  far: 100,
+                }}
+                onCreated={({ camera }) => {
+                  camera.lookAt(0, 0, 0);
+                }}
+              >
+                <color
+                  attach="background"
+                  args={["#f7f9fa"]}
+                />
+
+                <BrainScene url={modelUrl} />
+              </Canvas>
+
+              <div className="live-demo-canvas-label">
+                <span />
+                SEGMENTATION MODEL · INTERACTIVE
+              </div>
+            </div>
+
+            <div
+              style={{
+                marginTop: 10,
+                fontSize: 11,
+                color: "#8a969f",
+              }}
+            >
+              3D model loaded from{" "}
+              <code>{result.model_url}</code>
+            </div>
+          </section>
+        )}
+
+        {result && (
+          <section className="live-demo-card explanation-card">
+            <div className="live-demo-card-eyebrow">
+              Model explanation
+            </div>
+
+            <h2>Top feature contributions</h2>
+
+            <div className="live-demo-explanation-grid">
+              {result.prediction.explanation.map(
+                (x: any) => (
+                  <div
+                    className="live-demo-feature"
+                    key={x.feature}
+                  >
+                    <div>
+                      <div className="live-demo-feature-name">
+                        {x.feature}
+                      </div>
+
+                      <div className="live-demo-feature-direction">
+                        {x.direction}
+                      </div>
+                    </div>
+
+                    <strong>
+                      {x.contribution >= 0
+                        ? "+"
+                        : ""}
+                      {x.contribution.toFixed(4)}
+                    </strong>
+                  </div>
+                )
+              )}
+            </div>
+
+            <p className="live-demo-disclaimer">
+              Feature contributions describe
+              associations learned by the trained model;
+              they are not causal or clinical
+              conclusions.
+            </p>
+          </section>
+        )}
+      </main>
+    </div>
+  );
+}
+
+function Mini({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="live-demo-mini">
+      <div>{label}</div>
+      <strong>{value}</strong>
+    </div>
+  );
+}

@@ -1,0 +1,98 @@
+
+from pathlib import Path
+from uuid import uuid4
+import json, re, shutil
+import joblib, nibabel as nib, numpy as np, pandas as pd
+from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
+from src.features.update_brain_features import extract_subject
+from src.features.measurements import measure_subject
+from src.segmentation.single_segment import segment_single_mri
+
+router=APIRouter(); ROOT=Path(__file__).resolve().parents[1]
+MODEL_DIR=ROOT/'models'/'alzheimer'; MODEL_PATH=MODEL_DIR/'neurotrace_alzheimer_model.joblib'; META_PATH=MODEL_DIR/'neurotrace_feature_metadata.json'
+LIVE_ROOT=ROOT/'data'/'live_demo'; LIVE_MODELS=ROOT/'frontend'/'public'/'models'/'live_demo'; LIVE_ROOT.mkdir(parents=True,exist_ok=True); LIVE_MODELS.mkdir(parents=True,exist_ok=True)
+REGION_LABELS={5:'Right_Amygdala',6:'Left_Amygdala',8:'Right_Caudate',9:'Left_Caudate',16:'Right_Hippocampus',17:'Left_Hippocampus',20:'Right_Lateral_Ventricle',21:'Left_Lateral_Ventricle',22:'Right_Pallidum',23:'Left_Pallidum',24:'Right_Putamen',25:'Left_Putamen',26:'Right_Thalamus',27:'Left_Thalamus'}
+
+def load_model():
+    if not MODEL_PATH.exists() or not META_PATH.exists(): raise RuntimeError('Alzheimer model or feature metadata is missing.')
+    m=joblib.load(MODEL_PATH); f=json.loads(META_PATH.read_text(encoding='utf-8')).get('features',[])
+    if len(f)!=141: raise RuntimeError(f'Expected 141 features, found {len(f)}')
+    return m,f
+
+def predict(model,features,values):
+    frame=pd.DataFrame([{n:float(values.get(n,0.0)) for n in features}],columns=features); pred=int(model.predict(frame)[0]); p=model.predict_proba(frame)[0]; classes=list(model.classes_)
+    pa=float(p[classes.index(1)]) if 1 in classes else 0.; pn=float(p[classes.index(0)]) if 0 in classes else 0.; explanation=[]
+    try:
+        scaled=model.named_steps['scaler'].transform(frame)[0]; coef=model.named_steps['classifier'].coef_[0]
+        explanation=[{'feature':n,'contribution':float(v),'direction':'AD' if v>0 else 'Non-AD'} for n,v in zip(features,scaled*coef)]; explanation.sort(key=lambda x:abs(x['contribution']),reverse=True); explanation=explanation[:10]
+    except Exception: pass
+    return {'prediction':pred,'classification':'AD' if pred else 'Non-AD','probability_ad':pa,'probability_non_ad':pn,'model':'Logistic Regression','model_C':0.01,'features_used':141,'explanation':explanation}
+
+def mesh_from_mask(scene,mask,spacing,name,color):
+    import trimesh
+    from skimage.measure import marching_cubes
+    if not np.any(mask): return False
+    try:
+        v,f,_,_=marching_cubes(np.pad(mask.astype(np.uint8),1),level=.5,spacing=spacing,step_size=2); v-=np.asarray(spacing,dtype=np.float32); mesh=trimesh.Trimesh(vertices=v,faces=f,process=False); mesh.remove_unreferenced_vertices()
+        if not len(mesh.vertices) or not len(mesh.faces): return False
+        mesh.visual.vertex_colors=np.tile(np.asarray(color,dtype=np.uint8),(len(mesh.vertices),1)); scene.add_geometry(mesh,node_name=name); return True
+    except Exception: return False
+
+def make_brain_glb(seg,subject_id):
+    import trimesh
+    image=nib.load(str(seg)); data=np.rint(np.asarray(image.dataobj)).astype(np.int16); spacing=tuple(max(float(x),.001) for x in image.header.get_zooms()[:3]); scene=trimesh.Scene(); count=0
+    if mesh_from_mask(scene,data!=0,spacing,'BrainSurface',(174,189,202,180)): count+=1
+    for label,name in REGION_LABELS.items():
+        if mesh_from_mask(scene,data==label,spacing,name,(110,135,155,225)): count+=1
+    if not count: raise RuntimeError('No renderable geometry was generated from the uploaded segmentation.')
+    filename=f'{subject_id}_clean_brain.glb'; out=LIVE_MODELS/filename; scene.export(out,file_type='glb')
+    if not out.exists() or out.stat().st_size==0: raise RuntimeError('GLB generation produced an empty file.')
+    return f'/models/live_demo/{filename}',count
+
+def save(upload,path):
+    path.parent.mkdir(parents=True,exist_ok=True)
+    with path.open('wb') as out: shutil.copyfileobj(upload.file,out)
+
+def validate(upload):
+    n=(upload.filename or '').lower()
+    if not (n.endswith('.nii') or n.endswith('.nii.gz')): raise HTTPException(400,'Only .nii and .nii.gz files are supported.')
+
+def validate_nifti(path):
+    try: nib.load(str(path))
+    except Exception as e: raise HTTPException(400,f'Invalid NIfTI: {e}')
+
+def process(subject_id,mode,filename,segmentation_path):
+    model,features=load_model(); values=extract_subject(subject_id,segmentation_path); prediction=predict(model,features,values); measurements=measure_subject(segmentation_path); model_url,mesh_count=make_brain_glb(segmentation_path,subject_id)
+    result={'status':'success','subject_id':subject_id,'mode':mode,'input_filename':filename,'segmentation_process':'included' if mode=='full' else 'pre-computed','mri_available':True,'segmentation_available':True,'feature_count':141,'measurements':measurements,'prediction':prediction,'model_url':model_url,'model_mesh_count':mesh_count,'message':'Full raw T1 MRI → UNesT → features → ML → 3D analysis completed.' if mode=='full' else 'Pre-segmented MRI → features → ML → 3D analysis completed.'}
+    d=LIVE_ROOT/subject_id; d.mkdir(parents=True,exist_ok=True); (d/'result.json').write_text(json.dumps(result,indent=2),encoding='utf-8'); return result
+
+@router.post('/live-demo/quick')
+async def quick(file:UploadFile=File(...)):
+    validate(file); sid=f'live_quick_{uuid4().hex[:12]}'; d=LIVE_ROOT/sid; seg=d/'segmentation.nii.gz'; save(file,seg); validate_nifti(seg)
+    try: return process(sid,'quick',file.filename or 'uploaded_segmentation.nii.gz',seg)
+    except Exception as e: shutil.rmtree(d,ignore_errors=True); raise HTTPException(500,f'Quick analysis failed: {e}')
+
+@router.post('/live-demo/full')
+async def full(file:UploadFile=File(...)):
+    validate(file); sid=f'live_full_{uuid4().hex[:12]}'; d=LIVE_ROOT/sid; raw=d/'raw.nii.gz'; save(file,raw); validate_nifti(raw)
+    try:
+        generated=segment_single_mri(raw,sid); seg=d/'segmentation.nii.gz'; shutil.copy2(generated,seg); return process(sid,'full',file.filename or 'uploaded_t1.nii.gz',seg)
+    except Exception as e: shutil.rmtree(d,ignore_errors=True); raise HTTPException(500,f'Full analysis failed: {e}')
+    finally:
+        eval_dir=ROOT/'models'/'wholeBrainSeg_Large_UNEST_segmentation'/'eval'/sid
+        if eval_dir.exists(): shutil.rmtree(eval_dir,ignore_errors=True)
+
+@router.get('/live-demo/result/{subject_id}')
+def result(subject_id:str):
+    if not re.fullmatch(r'live_(quick|full)_[0-9a-f]{12}',subject_id): raise HTTPException(404,'Live analysis not found.')
+    p=LIVE_ROOT/subject_id/'result.json'
+    if not p.exists(): raise HTTPException(404,'Live analysis not found.')
+    return json.loads(p.read_text(encoding='utf-8'))
+
+@router.get('/live-demo/model/{filename}')
+def model(filename:str):
+    if not re.fullmatch(r'live_(quick|full)_[0-9a-f]{12}_clean_brain\.glb',filename): raise HTTPException(404,'Model not found.')
+    p=LIVE_MODELS/filename
+    if not p.exists(): raise HTTPException(404,'Model not found.')
+    return FileResponse(p,media_type='model/gltf-binary',filename=p.name)

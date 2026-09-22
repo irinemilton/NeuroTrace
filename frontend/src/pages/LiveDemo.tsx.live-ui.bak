@@ -1,0 +1,73 @@
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Brain, CheckCircle2, Loader2, Upload, Zap } from "lucide-react";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, useGLTF } from "@react-three/drei";
+import * as THREE from "three";
+
+const API = "http://127.0.0.1:8000";
+function BrainModel({url}:{url:string}) {
+  const {scene}=useGLTF(url);
+  const cloned=useMemo(()=>{const c=scene.clone(true);const b=new THREE.Box3().setFromObject(c);
+    const center=b.getCenter(new THREE.Vector3());const size=b.getSize(new THREE.Vector3());
+    c.position.sub(center);c.scale.setScalar(2.7/Math.max(size.x,size.y,size.z,.001));return c},[scene]);
+  return <primitive object={cloned}/>;
+}
+export default function LiveDemo(){
+ const nav=useNavigate();const [mode,setMode]=useState<"quick"|"full">("quick");
+ const [file,setFile]=useState<File|null>(null);const [result,setResult]=useState<any>(null);
+ const [running,setRunning]=useState(false);const [error,setError]=useState<string|null>(null);
+ async function run(){if(!file){setError("Choose a NIfTI file first.");return}setRunning(true);setError(null);setResult(null);
+   const form=new FormData();form.append("file",file);
+   try{const r=await fetch(`${API}/api/live-demo/${mode}`,{method:"POST",body:form});const d=await r.json();
+     if(!r.ok)throw new Error(d.detail||"Analysis failed.");setResult(d)}
+   catch(e){setError(e instanceof Error?e.message:"Analysis failed.")}finally{setRunning(false)}}
+ const confidence=result?Math.max(result.prediction.probability_ad,result.prediction.probability_non_ad):0;
+ return <div className="min-h-screen bg-[#f4f6f8] text-[#17202a] p-5">
+  <header className="h-[70px] px-6 bg-white/95 border border-[#e3e7eb] rounded-[18px] flex items-center justify-between shadow-[0_10px_35px_rgba(30,40,50,0.05)]">
+   <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-[#eef4fb] text-[#386b9d] flex items-center justify-center"><Brain className="w-5 h-5"/></div>
+    <div><div className="text-[17px] font-bold">NeuroTrace</div><div className="text-[11px] text-[#8a949e]">Live Demonstration</div></div></div>
+   <button onClick={()=>nav("/")} className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#dfe5e9] bg-white text-[#66747f] text-[10px] font-semibold"><ArrowLeft className="w-3.5 h-3.5"/>Dashboard</button>
+  </header>
+  <main className="max-w-[1450px] mx-auto mt-5 space-y-4">
+   <section className="bg-white/95 border border-[#e2e7eb] rounded-[18px] p-7"><div className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#98a2ad]">Research Workspace · Live Demo</div>
+    <h1 className="text-[28px] font-semibold tracking-tight mt-2">MRI Analysis Demonstration</h1>
+    <p className="text-[12px] leading-6 text-[#87929b] max-w-3xl mt-3">Choose a rapid pre-segmented workflow or run the complete raw MRI to UNesT segmentation pipeline.</p>
+    <div className="grid md:grid-cols-2 gap-4 mt-6">
+     {([["quick","⚡","Quick Analysis","Pre-segmented","Load an existing UNesT segmentation and run feature extraction, ML inference and 3D visualization."],["full","🧠","Full Pipeline","Raw MRI + UNesT","Load a raw T1 MRI and run the actual UNesT segmentation before feature extraction and ML inference."]] as const).map(([m,icon,title,tag,desc])=>
+      <button key={m} onClick={()=>{setMode(m);setFile(null);setResult(null);setError(null)}} className={`text-left rounded-2xl border p-5 ${mode===m?"border-[#6d9fc5] bg-[#f5f9fc]":"border-[#e1e6ea] bg-white"}`}>
+       <div className="text-xl">{icon}</div><h2 className="text-[16px] font-semibold mt-4">{title}</h2><div className="text-[8px] uppercase tracking-[0.14em] text-[#8d99a3] mt-1">{tag}</div><p className="text-[11px] leading-5 text-[#89949d] mt-2">{desc}</p>
+      </button>)}
+    </div>
+   </section>
+   <section className="grid lg:grid-cols-[0.85fr_1.15fr] gap-4">
+    <div className="bg-white/95 border border-[#e2e7eb] rounded-[18px] p-6"><div className="text-[9px] uppercase tracking-[0.12em] font-bold text-[#98a2ad]">{mode==="quick"?"Pre-segmented input":"Raw T1 input"}</div>
+     <label className="mt-4 block rounded-2xl border-2 border-dashed border-[#dce4e9] bg-[#fafcfd] p-7 text-center cursor-pointer"><input type="file" accept=".nii,.nii.gz" className="hidden" onChange={e=>{setFile(e.target.files?.[0]??null);setResult(null);setError(null)}}/><Upload className="w-8 h-8 mx-auto text-[#6d9fc5]"/>
+      <div className="text-[13px] font-semibold mt-3">Choose NIfTI from File Explorer</div><div className="text-[9px] text-[#98a2ad] mt-2">{mode==="quick"?"Select a UNesT segmentation .nii or .nii.gz":"Select a raw T1 MRI .nii or .nii.gz"}</div></label>
+     {file&&<div className="mt-4 px-4 py-3 rounded-xl bg-[#f5f9fc] border border-[#e0eaf1]"><div className="text-[10px] font-semibold break-all">{file.name}</div><div className="text-[8px] text-[#8e9aa4] mt-1">{(file.size/1024/1024).toFixed(1)} MB · ready</div></div>}
+     <button onClick={run} disabled={!file||running} className="w-full mt-4 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#386b9d] text-white text-[11px] font-semibold disabled:opacity-40">
+      {running?<><Loader2 className="w-4 h-4 animate-spin"/>{mode==="full"?"Running UNesT + analysis...":"Analyzing segmentation..."}</>:<><Zap className="w-4 h-4"/>Run {mode==="quick"?"Quick Analysis":"Full Pipeline"}</>}
+     </button><div className="mt-4 text-[9px] leading-5 text-[#8c979f]">{mode==="quick"?"UNesT segmentation is pre-computed for the rapid demonstration.":"CPU-based UNesT inference can take several minutes."}</div>
+     {error&&<div className="mt-4 p-3 rounded-xl border border-red-200 bg-red-50 text-[10px] text-red-700">{error}</div>}
+    </div>
+    <div className="bg-white/95 border border-[#e2e7eb] rounded-[18px] p-6"><div className="flex items-center justify-between"><div><div className="text-[9px] uppercase tracking-[0.12em] font-bold text-[#98a2ad]">Pipeline</div>
+     <h2 className="text-[18px] font-semibold mt-1">{mode==="quick"?"Pre-segmented → Features → ML":"Raw MRI → UNesT → Features → ML"}</h2></div>{result&&<CheckCircle2 className="w-5 h-5 text-[#71a67e]"/>}</div>
+     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">{(mode==="quick"?["Segmentation loaded","141 features","ML inference","3D + result"]:["UNesT segmentation","141 features","ML inference","3D + result"]).map(x=><div key={x} className="rounded-xl border border-[#e5eaee] bg-[#fafcfd] p-4 text-center text-[9px] font-semibold">{x}</div>)}</div>
+     {result&&<div className="mt-5 grid md:grid-cols-2 gap-4"><div className="rounded-2xl border border-[#e1e6ea] p-5"><div className="text-[9px] uppercase tracking-[0.12em] text-[#98a2ad] font-bold">ML result</div>
+      <div className="text-[27px] font-semibold mt-2">{result.prediction.classification}</div><div className="text-[10px] text-[#7e8a94] mt-1">AD probability {(result.prediction.probability_ad*100).toFixed(1)}%</div>
+      <div className="h-2 rounded-full bg-[#edf1f3] mt-4 overflow-hidden"><div className="h-full bg-[#6998bd]" style={{width:`${confidence*100}%`}}/></div><div className="text-[9px] text-[#9aa4ac] mt-2">Logistic Regression · C=0.01 · 141 features</div></div>
+      <div className="rounded-2xl border border-[#e1e6ea] p-5"><div className="text-[9px] uppercase tracking-[0.12em] text-[#98a2ad] font-bold">MRI summary</div><div className="grid grid-cols-2 gap-2 mt-3">
+       <Mini label="Features" value="141"/><Mini label="Voxel" value={`${result.measurements.voxel_volume_mm3??"—"} mm³`}/><Mini label="Hippocampus" value={`${result.measurements.regions?.hippocampus?.total_volume_mm3?.toFixed(0)??"—"} mm³`}/><Mini label="Asymmetry" value={`${result.measurements.regions?.hippocampus?.asymmetry_percent?.toFixed(1)??"—"}%`}/>
+      </div></div></div>}
+    </div>
+   </section>
+   {result?.model_url&&<section className="bg-white/95 border border-[#e2e7eb] rounded-[18px] overflow-hidden"><div className="px-6 py-4 border-b border-[#edf0f2]"><div className="text-[9px] uppercase tracking-[0.12em] font-bold text-[#98a2ad]">3D MRI segmentation</div><h2 className="text-[18px] font-semibold mt-1">Segmentation-derived brain model</h2><p className="text-[10px] text-[#8b969f] mt-1">Generated from the uploaded segmentation labels.</p></div>
+    <div className="h-[560px] bg-[#f8fafb]"><Canvas camera={{position:[0,0,4.5],fov:40}}><ambientLight intensity={1.5}/><directionalLight position={[4,5,6]} intensity={2}/><BrainModel url={`${API}${result.model_url}`}/><OrbitControls enableDamping/></Canvas></div>
+   </section>}
+   {result&&<section className="bg-white/95 border border-[#e2e7eb] rounded-[18px] p-6"><div className="text-[9px] uppercase tracking-[0.12em] font-bold text-[#98a2ad]">Model explanation</div><h2 className="text-[18px] font-semibold mt-1">Top feature contributions</h2>
+    <div className="grid md:grid-cols-2 gap-2 mt-4">{result.prediction.explanation.map((x:any)=><div key={x.feature} className="flex items-center justify-between gap-4 rounded-xl bg-[#fafcfd] border border-[#edf0f2] px-4 py-3"><div className="text-[9px] font-medium break-all">{x.feature}</div><div className="text-[9px] font-semibold whitespace-nowrap">{x.direction} · {x.contribution>=0?"+":""}{x.contribution.toFixed(4)}</div></div>)}</div>
+    <p className="text-[9px] leading-5 text-[#98a2ad] mt-4">Feature contributions describe associations learned by the trained model; they are not causal or clinical conclusions.</p>
+   </section>}
+  </main></div>
+}
+function Mini({label,value}:{label:string;value:string}){return <div className="rounded-xl bg-[#fafcfd] border border-[#edf0f2] p-3"><div className="text-[8px] uppercase tracking-wider text-[#9aa4ac]">{label}</div><div className="text-[12px] font-semibold mt-1">{value}</div></div>}

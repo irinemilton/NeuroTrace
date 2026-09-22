@@ -3,8 +3,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import BrainAnalysis from "./pages/BrainAnalysis";
 import { Dashboard } from "./pages/Dashboard";
 
-import LiveDemo from "./pages/LiveDemo";
-import LiveDemoResult from "./pages/LiveDemoResult";
 function App() {
   return (
     <Routes>
@@ -24,15 +22,12 @@ function App() {
         path="/analyze/:subjectId"
         element={<BrainAnalysis />}
       />
-      <Route path="/live-demo/result/:subjectId" element={<LiveDemoResult />} />
 
       <Route
         path="*"
         element={<Navigate to="/" replace />}
       />
-    
-        <Route path="/live-demo" element={<LiveDemo />} />
-</Routes>
+    </Routes>
   );
 }
 

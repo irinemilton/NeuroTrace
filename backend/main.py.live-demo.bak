@@ -11,7 +11,6 @@ from pydantic import BaseModel
 
 from src.features.measurements import measure_subject
 from backend.config import settings
-from backend.live_demo import router as live_demo_router
 
 
 # ============================================================
@@ -200,9 +199,6 @@ app.add_middleware(
 
     allow_headers=["*"],
 )
-
-
-app.include_router(live_demo_router, prefix="/api")
 
 
 # ============================================================
