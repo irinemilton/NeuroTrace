@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, AlertTriangle, BarChart3 } from "lucide-react";
+import { ArrowLeft, Loader2, AlertTriangle, BarChart3, ChevronLeft, ChevronRight, Maximize2, Activity, BrainCircuit, Sparkles } from "lucide-react";
 
 import TopBar from "../components/TopBar";
 import BrainViewer from "../components/BrainViewer";
@@ -9,6 +9,8 @@ import StructurePanel, {
   type BrainRegion,
 } from "../components/StructurePanel";
 import AnalysisPanel from "../components/AnalysisPanel";
+import MriSliceViewer from "../components/MriSliceViewer";
+import SpatialBackdrop from "../components/SpatialBackdrop";
 
 const API = "http://127.0.0.1:8000";
 
@@ -94,6 +96,9 @@ export default function LiveDemoResult() {
   const [showRegions, setShowRegions] = useState(true);
 
   const [showLabels, setShowLabels] = useState(false);
+  const [explainMode, setExplainMode] = useState(false);
+  const [viewerMode, setViewerMode] = useState<"explore" | "important" | "findings" | "volume">("explore");
+  const [findingIndex, setFindingIndex] = useState(0);
 
   /* =======================================================
      LOAD LIVE RESULT
@@ -192,6 +197,7 @@ export default function LiveDemoResult() {
   if (loading) {
     return (
       <div className="app-shell">
+        <SpatialBackdrop />
         <TopBar subjectId={subjectId || "LIVE"} />
 
         <div className="brain-overlay">
@@ -270,8 +276,22 @@ export default function LiveDemoResult() {
   const protectiveFactors = explanation.filter((item) => (item.shap_value ?? item.contribution) < 0).slice(0, 4);
   const regionForFeature = (feature: string) => {
     const normalized = feature.toLowerCase().replace(/left_|right_|_/g, " ");
-    return BRAIN_REGIONS.find((region) => normalized.includes(region.name.toLowerCase()))?.id;
+    return BRAIN_REGIONS.find((region) => {
+      const name = region.name.toLowerCase().replace(/s$/, "");
+      return normalized.includes(name) || normalized.includes(region.id.replace("-", " "));
+    })?.id;
   };
+  const mappedFindings = explanation
+    .map((item) => ({ item, regionId: regionForFeature(item.feature) }))
+    .filter((finding): finding is { item: (typeof explanation)[number]; regionId: string } => Boolean(finding.regionId));
+  const focusedRegions = viewerMode === "findings" || explainMode
+    ? mappedFindings.slice(0, 3).map((finding) => finding.regionId)
+    : viewerMode === "important"
+      ? ["hippocampus", "amygdala", "thalamus"]
+      : [];
+  const activeFinding = mappedFindings[findingIndex % Math.max(1, mappedFindings.length)];
+  const findingValue = activeFinding ? (activeFinding.item.shap_value ?? activeFinding.item.contribution) : 0;
+  const confidence = Math.max(prediction.probability_ad, prediction.probability_non_ad);
 
   /* =======================================================
      LIVE GLB URL
@@ -366,11 +386,40 @@ export default function LiveDemoResult() {
 
       </div>
 
+      <div className="result-command-strip" aria-label="Analysis telemetry">
+        <div className="result-command-title"><Activity size={14} /><span>LIVE ANALYSIS CHANNEL</span><i /></div>
+        <div><span>PIPELINE</span><strong>{result.mode === "full" ? "UNEST / FULL" : "QUICK / READY"}</strong></div>
+        <div><span>FEATURES</span><strong>{result.feature_count}</strong></div>
+        <div><span>MODEL</span><strong><BrainCircuit size={13} /> {prediction.model}</strong></div>
+        <div><span>CONFIDENCE</span><strong>{(confidence * 100).toFixed(1)}%</strong></div>
+      </div>
+
+      <section className="brain-health-summary" aria-labelledby="brain-health-title">
+        <div>
+          <span className="eyebrow">PLAIN-LANGUAGE OVERVIEW</span>
+          <h1 id="brain-health-title">Brain Health Summary</h1>
+          <p className="summary-classification">
+            The model classified this scan as <strong>{prediction.classification}</strong> with <strong>{(confidence * 100).toFixed(1)}% confidence</strong>.
+          </p>
+          <p className="summary-disclaimer">This is a research screening signal, not a diagnosis. Discuss results with a qualified clinician.</p>
+        </div>
+        <div className="summary-findings">
+        <strong><Sparkles size={13} /> Key findings</strong>
+          <ul>
+            {explanation.slice(0, 3).map((item, index) => (
+              <li key={`summary-${index}`}>{item.feature.replace(/_/g, " ")} ({(item.shap_value ?? item.contribution) >= 0 ? "higher model risk" : "lower model risk"})</li>
+            ))}
+            {!explanation.length && <li>No model findings were returned.</li>}
+          </ul>
+          <div className="summary-legend"><span><i className="legend-dot legend-positive" /> Higher model risk</span><span><i className="legend-dot legend-negative" /> Lower model risk</span><span><i className="legend-dot legend-neutral" /> Unrelated</span></div>
+        </div>
+      </section>
+
       {/* ===================================================
           MAIN ANALYSIS LAYOUT
           =================================================== */}
 
-      <main className="analysis-layout">
+      <main className="analysis-layout immersive-analysis">
 
         {/* =================================================
             STRUCTURE PANEL
@@ -416,6 +465,15 @@ export default function LiveDemoResult() {
 
         <section className="brain-stage">
 
+          <div className="guided-view-controls" role="toolbar" aria-label="Brain view controls">
+            <button className={viewerMode === "explore" ? "active" : ""} onClick={() => { setViewerMode("explore"); setExplainMode(false); }}>Explore brain</button>
+            <button className={viewerMode === "important" ? "active" : ""} onClick={() => { setViewerMode("important"); setExplainMode(false); }}>Show important regions</button>
+            <button className={viewerMode === "findings" ? "active" : ""} onClick={() => { setViewerMode("findings"); setExplainMode(true); }}>Show model findings</button>
+            <button className={viewerMode === "volume" ? "active" : ""} onClick={() => setViewerMode("volume")}>Show volume differences</button>
+            <button onClick={() => { setViewerMode("explore"); setExplainMode(false); handleRegionSelect(null); }}><BarChart3 size={13} /> Reset view</button>
+            <button onClick={() => document.querySelector<HTMLButtonElement>(".viewer-fullscreen")?.click()}><Maximize2 size={13} /> Fullscreen</button>
+          </div>
+
           {liveModelUrl ? (
             <BrainViewer
               modelPath={liveModelUrl}
@@ -439,6 +497,8 @@ export default function LiveDemoResult() {
               onRegionSelect={
                 handleRegionSelect
               }
+              focusRegions={focusedRegions}
+              explainMode={explainMode}
             />
           ) : (
             <div className="brain-overlay">
@@ -483,6 +543,22 @@ export default function LiveDemoResult() {
 
         </section>
 
+        {explainMode && activeFinding && (
+          <section className="finding-navigator" aria-label="Finding explanation">
+            <div>
+              <span className="eyebrow">EXPLAIN THIS BRAIN</span>
+              <h2>{activeFinding.item.feature.replace(/_/g, " ")}</h2>
+              <p>{findingValue >= 0 ? "This measurement is pushing the model toward the predicted classification." : "This measurement is providing a lower-risk signal in the model."} <strong>{activeFinding.regionId.replace("-", " ")}</strong> is highlighted in the viewer.</p>
+              <small>SHAP contribution: {findingValue >= 0 ? "+" : ""}{findingValue.toFixed(4)} · Region measurement: {measurements.regions?.[activeFinding.regionId]?.total_volume_mm3 != null ? `${Math.round(measurements.regions[activeFinding.regionId].total_volume_mm3!).toLocaleString()} mm³` : "not available"}</small>
+            </div>
+            <div className="finding-nav-buttons">
+              <button aria-label="Previous finding" onClick={() => setFindingIndex((findingIndex - 1 + mappedFindings.length) % Math.max(1, mappedFindings.length))}><ChevronLeft size={17} /></button>
+              <span>{findingIndex + 1} / {mappedFindings.length}</span>
+              <button aria-label="Next finding" onClick={() => setFindingIndex((findingIndex + 1) % Math.max(1, mappedFindings.length))}><ChevronRight size={17} /></button>
+            </div>
+          </section>
+        )}
+
         {/* =================================================
             ANALYSIS PANEL
             ================================================= */}
@@ -498,6 +574,8 @@ export default function LiveDemoResult() {
         />
 
       </main>
+
+      <MriSliceViewer subjectId={result.subject_id} />
 
       {/* ===================================================
           MACHINE LEARNING

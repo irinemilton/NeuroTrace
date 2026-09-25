@@ -1,16 +1,23 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Activity,
   ArrowRight,
   Brain,
+  Box,
   CheckCircle2,
   CircleDashed,
   Database,
+  Eye,
+  Layers3,
+  Orbit,
   RefreshCw,
   Server,
   Sparkles,
 } from "lucide-react";
+import BrainViewer from "../components/BrainViewer";
+import NeuroNetwork from "../components/NeuroNetwork";
+import SpatialBackdrop from "../components/SpatialBackdrop";
 
 import {
   getProjectStatus,
@@ -20,6 +27,7 @@ import {
 } from "../api/client";
 
 export function Dashboard() {
+  const navigate = useNavigate();
   const [project, setProject] = useState<ProjectStatus | null>(null);
   const [segmentation, setSegmentation] =
     useState<SegmentationStatus | null>(null);
@@ -27,6 +35,7 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
 
   const loadData = useCallback(async (manual = false) => {
     try {
@@ -73,6 +82,7 @@ export function Dashboard() {
   if (loading) {
     return (
       <div className="dashboard-page">
+        <SpatialBackdrop />
         <div className="dashboard-loading">
           <RefreshCw className="dashboard-loading-icon" />
           <span>Loading NeuroTrace...</span>
@@ -297,6 +307,75 @@ export function Dashboard() {
           </div>
 
         </section>
+
+        <section className="dashboard-command-grid">
+          <div className="dashboard-visual-card">
+            <div className="dashboard-visual-header">
+              <div>
+                <div className="dashboard-eyebrow">Interactive workspace</div>
+                <h2>Whole-brain intelligence map</h2>
+                <p>Explore the reference segmentation surface while your pipeline runs.</p>
+              </div>
+              <div className="dashboard-view-mode"><Orbit /> LIVE 3D</div>
+            </div>
+            <div className="dashboard-brain-stage">
+              <BrainViewer
+                selectedRegion={selectedRegion}
+                showSurface
+                showRegions
+                showLabels={Boolean(selectedRegion)}
+                onRegionSelect={setSelectedRegion}
+                focusRegions={selectedRegion ? [selectedRegion] : []}
+                explainMode={Boolean(selectedRegion)}
+              />
+              <div className="dashboard-stage-hint">
+                <span><Box /> Drag to orbit</span>
+                <span><Eye /> Select a region</span>
+              </div>
+            </div>
+            <div className="dashboard-region-strip">
+              {["hippocampus", "thalamus", "amygdala", "caudate"].map((region) => (
+                <button
+                  key={region}
+                  className={selectedRegion === region ? "active" : ""}
+                  onClick={() => setSelectedRegion(selectedRegion === region ? null : region)}
+                >
+                  <span />
+                  {region}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <aside className="dashboard-activity-card">
+            <div className="dashboard-activity-heading">
+              <div>
+                <div className="dashboard-eyebrow">Processing pulse</div>
+                <h2>Pipeline activity</h2>
+              </div>
+              <span className="dashboard-live-badge"><i /> LIVE</span>
+            </div>
+            <div className="dashboard-pipeline-steps">
+              <PipelineStep icon={<Database />} label="MRI ingestion" detail={project?.raw_mri_available ? "Dataset available" : "Waiting for data"} state={project?.raw_mri_available ? "done" : "pending"} />
+              <PipelineStep icon={<Layers3 />} label="UNesT segmentation" detail={project?.segmentation_running ? "Processing whole brain" : `${completed} subjects complete`} state={project?.segmentation_running ? "active" : completed > 0 ? "done" : "pending"} />
+              <PipelineStep icon={<Sparkles />} label="ML classification" detail={project?.model_available ? "Model ready for inference" : "Awaiting training"} state={project?.model_available ? "done" : "pending"} />
+            </div>
+            <div className="dashboard-activity-footer">
+              <span>Last system sync</span>
+              <strong>{project?.segmentation_running ? "Running now" : "Just now"}</strong>
+            </div>
+            <Link to="/analyze" className="dashboard-rail-link">Open analysis workspace <ArrowRight /></Link>
+          </aside>
+        </section>
+
+        <NeuroNetwork
+          selectedRegion={selectedRegion}
+          onSelectRegion={setSelectedRegion}
+          onOpenAnalysis={() => {
+            const firstSubject = segmentation?.subjects.find((subject) => subject.segmentation_available) ?? segmentation?.subjects[0];
+            navigate(firstSubject ? `/analyze/${firstSubject.subject_id}` : "/analyze");
+          }}
+        />
 
 
         {/* ================================================= */}
@@ -558,6 +637,29 @@ function Metric({
         {icon}
       </div>
 
+    </div>
+  );
+}
+
+function PipelineStep({
+  icon,
+  label,
+  detail,
+  state,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  detail: string;
+  state: "done" | "active" | "pending";
+}) {
+  return (
+    <div className={`dashboard-pipeline-step ${state}`}>
+      <div className="dashboard-step-icon">{icon}</div>
+      <div className="dashboard-step-copy">
+        <strong>{label}</strong>
+        <span>{detail}</span>
+      </div>
+      <span className="dashboard-step-state">{state === "done" ? "DONE" : state === "active" ? "LIVE" : "QUEUED"}</span>
     </div>
   );
 }

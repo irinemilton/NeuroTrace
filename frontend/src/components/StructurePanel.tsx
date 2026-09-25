@@ -94,8 +94,8 @@ export default function StructurePanel({
     <aside className="structure-panel">
       <div className="panel-heading">
         <div>
-          <span className="eyebrow">ANATOMICAL ATLAS</span>
-          <h2>Structures</h2>
+          <span className="eyebrow">REGION ATLAS</span>
+          <h2>Brain map</h2>
         </div>
       </div>
 
@@ -103,7 +103,7 @@ export default function StructurePanel({
         <Search size={16} />
         <input
           type="text"
-          placeholder="Search structures..."
+          placeholder="Find a region..."
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
@@ -111,7 +111,7 @@ export default function StructurePanel({
 
       <div className="structure-section">
         <div className="section-title">
-          IMPORTANT REGIONS
+          FOCUS REGIONS
         </div>
 
         <div className="region-list">
@@ -148,22 +148,22 @@ export default function StructurePanel({
       </div>
 
       <div className="structure-section display-section">
-        <div className="section-title">DISPLAY</div>
+        <div className="section-title">VIEW LAYERS</div>
 
         <Toggle
-          label="Brain surface"
+          label="Surface mesh"
           enabled={showSurface}
           onChange={onShowSurfaceChange}
         />
 
         <Toggle
-          label="Segmented regions"
+          label="Region map"
           enabled={showRegions}
           onChange={onShowRegionsChange}
         />
 
         <Toggle
-          label="Region labels"
+          label="Labels"
           enabled={showLabels}
           onChange={onShowLabelsChange}
         />
@@ -172,12 +172,12 @@ export default function StructurePanel({
       <div className="panel-footer">
         <div className="footer-stat">
           <strong>132</strong>
-          <span>anatomical labels</span>
+          <span>atlas labels</span>
         </div>
 
         <div className="footer-stat">
           <strong>141</strong>
-          <span>brain features</span>
+          <span>MRI features</span>
         </div>
       </div>
     </aside>

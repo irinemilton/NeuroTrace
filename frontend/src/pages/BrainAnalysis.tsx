@@ -20,6 +20,7 @@ import StructurePanel, {
 import AnalysisPanel from "../components/AnalysisPanel";
 
 import ModelSummary from "../components/ModelSummary";
+import SpatialBackdrop from "../components/SpatialBackdrop";
 
 import {
   getSubject,
@@ -565,6 +566,7 @@ export default function BrainAnalysis() {
     return (
 
       <div className="app-shell">
+        <SpatialBackdrop />
 
         <TopBar subjectId="—" />
 
@@ -670,7 +672,7 @@ export default function BrainAnalysis() {
           MAIN ANALYSIS
       ====================================================== */}
 
-      <main className="analysis-layout">
+      <main className="analysis-layout immersive-analysis">
 
 
         {/* ====================================================

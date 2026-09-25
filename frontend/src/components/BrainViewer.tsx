@@ -14,7 +14,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Maximize2, RotateCcw } from "lucide-react";
+import { Crosshair, Maximize2, RotateCcw, ScanLine } from "lucide-react";
 
 import type { CSSProperties } from "react";
 
@@ -65,6 +65,12 @@ export interface BrainViewerProps {
   onRegionSelect: (
     regionId: string | null,
   ) => void;
+
+  /** Regions to emphasize while explaining model findings. */
+  focusRegions?: string[];
+
+  /** Enables a subtle dimming treatment for unrelated regions. */
+  explainMode?: boolean;
 }
 
 
@@ -151,6 +157,16 @@ const REGION_LABELS: Record<string, string> = {
     "Lateral Ventricle",
 };
 
+const REGION_CODES: Record<string, string> = {
+  hippocampus: "HIP",
+  amygdala: "AMY",
+  thalamus: "THA",
+  caudate: "CAU",
+  putamen: "PUT",
+  pallidum: "PAL",
+  "lateral-ventricle": "LV",
+};
+
 
 /* =========================================================
    LABEL POSITIONS
@@ -234,8 +250,10 @@ function BrainModel({
   modelPath,
   onRegionSelect,
   opacity = 0.88,
-  surfaceColor = "#aebdca",
-  regionColor = "#6e879b",
+  surfaceColor = "#2b5660",
+  regionColor = "#67aeb5",
+  focusRegions = [],
+  explainMode = false,
 }: BrainViewerProps & {
   opacity?: number;
   surfaceColor?: string;
@@ -374,7 +392,7 @@ function BrainModel({
           material.transparent =
             true;
 
-          material.opacity = Math.min(1, opacity * 0.2);
+          material.opacity = Math.min(1, opacity * 0.34);
 
           material.roughness =
             0.8;
@@ -444,12 +462,10 @@ function BrainModel({
         material.metalness =
           0;
 
-        material.emissive.set(
-          "#000000",
-        );
+        material.emissive.set("#174b55");
 
         material.emissiveIntensity =
-          0;
+          0.18;
       }
 
 
@@ -542,7 +558,8 @@ function BrainModel({
         regionId;
 
 
-      if (isSelected) {
+      const isFocused = focusRegions.includes(regionId);
+      if (isSelected || isFocused) {
 
         material.color.set(
           "#4c9bd1",
@@ -555,8 +572,7 @@ function BrainModel({
         material.emissiveIntensity =
           0.5;
 
-        material.opacity =
-          1;
+        material.opacity = 1;
 
       } else {
 
@@ -569,7 +585,7 @@ function BrainModel({
         material.emissiveIntensity =
           0;
 
-        material.opacity = opacity;
+        material.opacity = explainMode ? Math.min(opacity, 0.16) : opacity;
       }
 
     });
@@ -579,6 +595,8 @@ function BrainModel({
     selectedRegion,
     opacity,
     regionColor,
+    focusRegions,
+    explainMode,
   ]);
 
 
@@ -785,6 +803,9 @@ function BrainModel({
         REGION_LABELS[
           regionId
         ] ?? regionId;
+      const code = REGION_CODES[regionId] ?? "REG";
+      const isAttention = regionId === "hippocampus";
+      const accent = selected ? "#77d1ce" : isAttention ? "#ef8d98" : "#78aeb5";
 
 
       return (
@@ -816,9 +837,7 @@ function BrainModel({
 
             <meshBasicMaterial
               color={
-                selected
-                  ? "#27698f"
-                  : "#71869a"
+                accent
               }
             />
 
@@ -836,9 +855,7 @@ function BrainModel({
               anchor.label.toArray(),
             ]}
             color={
-              selected
-                ? "#27698f"
-                : "#71869a"
+              accent
             }
             lineWidth={
               selected
@@ -874,87 +891,83 @@ function BrainModel({
           >
 
             <div
+              title={`Select ${label} to inspect this region`}
               style={{
                 display: "flex",
 
                 alignItems:
                   "center",
 
-                gap: "6px",
+                gap: "7px",
 
                 padding:
-                  "5px 8px",
+                  "6px 9px",
 
                 borderRadius:
-                  "7px",
+                  "9px",
 
                 border: selected
-                  ? "1px solid #4c9bd1"
-                  : "1px solid rgba(120,140,155,0.35)",
+                  ? "1px solid rgba(119,209,206,.9)"
+                  : `1px solid ${isAttention ? "rgba(239,141,152,.65)" : "rgba(119,209,206,.3)"}`,
 
                 background:
                   selected
-                    ? "rgba(235,247,255,0.98)"
-                    : "rgba(255,255,255,0.96)",
+                    ? "rgba(15,65,70,.96)"
+                    : "rgba(6,25,32,.92)",
 
                 boxShadow:
                   selected
-                    ? "0 4px 14px rgba(39,105,143,0.20)"
-                    : "0 2px 8px rgba(30,50,65,0.14)",
+                    ? "0 0 0 3px rgba(119,209,206,.12), 0 5px 20px rgba(0,0,0,.35)"
+                    : "0 4px 16px rgba(0,0,0,.3)",
 
                 backdropFilter:
                   "blur(6px)",
 
                 color:
-                  selected
-                    ? "#1f5877"
-                    : "#344654",
+                  "#d8eeee",
 
                 fontFamily:
                   "Inter, system-ui, sans-serif",
 
                 fontSize:
-                  "11px",
+                  "10px",
 
                 fontWeight:
-                  600,
+                  650,
 
                 lineHeight:
                   "14px",
 
                 letterSpacing:
-                  "0.01em",
+                  "0.02em",
 
                 whiteSpace:
                   "nowrap",
               }}
             >
 
-              {/* Status indicator */}
-
               <span
                 style={{
-                  width: "6px",
+                  width: "7px",
 
-                  height: "6px",
+                  height: "7px",
 
                   borderRadius:
                     "50%",
 
                   background:
-                    selected
-                      ? "#27698f"
-                      : "#71869a",
+                    accent,
 
+                  boxShadow: `0 0 8px ${accent}`,
                   flexShrink: 0,
                 }}
               />
 
-
-              {/* Region name */}
-
-              <span>
-                {label}
+              <span style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+                <span style={{ color: "#789b9f", fontSize: "7px", fontWeight: 750, letterSpacing: ".12em" }}>
+                  {code} · MRI REGION
+                </span>
+                <span>{label}</span>
               </span>
 
             </div>
@@ -980,6 +993,9 @@ function BrainModel({
       <primitive
         object={model}
         onClick={
+          handleRegionClick
+        }
+        onDoubleClick={
           handleRegionClick
         }
       />
@@ -1074,7 +1090,7 @@ function Scene(
       <color
         attach="background"
         args={[
-          "#f5f7f8",
+          "#061820",
         ]}
       />
 
@@ -1082,13 +1098,13 @@ function Scene(
       {/* Main lighting */}
 
       <ambientLight
-        intensity={2}
+        intensity={0.7}
       />
 
       <hemisphereLight
-        intensity={2}
-        color="#ffffff"
-        groundColor="#cbd5dc"
+        intensity={0.8}
+        color="#8fd5d3"
+        groundColor="#061820"
       />
 
       <directionalLight
@@ -1097,7 +1113,7 @@ function Scene(
           6,
           7,
         ]}
-        intensity={3}
+        intensity={1.8}
       />
 
       <directionalLight
@@ -1106,7 +1122,7 @@ function Scene(
           2,
           4,
         ]}
-        intensity={2}
+        intensity={1.2}
       />
 
 
@@ -1151,8 +1167,8 @@ export default function BrainViewer(
   props: BrainViewerProps,
 ) {
   const [opacity, setOpacity] = useState(0.88);
-  const [surfaceColor, setSurfaceColor] = useState("#aebdca");
-  const [regionColor, setRegionColor] = useState("#6e879b");
+  const [surfaceColor, setSurfaceColor] = useState("#2b5660");
+  const [regionColor, setRegionColor] = useState("#67aeb5");
   const [resetToken, setResetToken] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const controlsRef = useRef<any>(null);
@@ -1226,8 +1242,13 @@ export default function BrainViewer(
           className="viewer-live-dot"
         />
 
-        3D MRI SEGMENTATION
+        LIVE NEURAL SCAN
 
+      </div>
+
+      <div className="viewer-telemetry" aria-label="3D viewer telemetry">
+        <div><ScanLine size={12} /><span>VOLUME</span><strong>1 mm</strong></div>
+        <div><Crosshair size={12} /><span>MODE</span><strong>{props.explainMode ? "FOCUS" : "EXPLORE"}</strong></div>
       </div>
 
 
@@ -1235,34 +1256,37 @@ export default function BrainViewer(
           CONTROLS
           ============================================= */}
 
-      <div
-        className="viewer-controls"
-      >
-        <label className="viewer-opacity">
-          Opacity
-          <input aria-label="Brain opacity" type="range" min="0.2" max="1" step="0.05" value={opacity} onChange={(event) => setOpacity(Number(event.target.value))} />
-        </label>
-        <label className="viewer-color">
-          <span>Surface</span>
-          <input aria-label="Surface color" type="color" value={surfaceColor} onChange={(event) => setSurfaceColor(event.target.value)} />
-        </label>
-        <label className="viewer-color">
-          <span>Regions</span>
-          <input aria-label="Region color" type="color" value={regionColor} onChange={(event) => setRegionColor(event.target.value)} />
-        </label>
+      <div className="viewer-controls">
+        <details className="advanced-controls">
+          <summary>VIEW CONTROLS</summary>
+          <div className="advanced-controls-content">
+            <label className="viewer-opacity">
+              Opacity
+              <input aria-label="Brain opacity" type="range" min="0.2" max="1" step="0.05" value={opacity} onChange={(event) => setOpacity(Number(event.target.value))} />
+            </label>
+            <label className="viewer-color">
+              <span>Surface</span>
+              <input aria-label="Surface color" type="color" value={surfaceColor} onChange={(event) => setSurfaceColor(event.target.value)} />
+            </label>
+            <label className="viewer-color">
+              <span>Regions</span>
+              <input aria-label="Region color" type="color" value={regionColor} onChange={(event) => setRegionColor(event.target.value)} />
+            </label>
+          </div>
+        </details>
         <button type="button" title="Reset camera" onClick={() => setResetToken((value) => value + 1)}>
-          <RotateCcw size={13} />
+          <RotateCcw size={13} /> Reset
         </button>
-        <button type="button" title={isFullscreen ? "Exit fullscreen" : "Fullscreen"} onClick={toggleFullscreen}>
-          <Maximize2 size={13} />
+        <button className="viewer-fullscreen" type="button" title={isFullscreen ? "Exit fullscreen" : "Fullscreen"} onClick={toggleFullscreen}>
+          <Maximize2 size={13} /> Fullscreen
         </button>
 
         <span>
-          DRAG TO ROTATE
+          ORBIT MODEL
         </span>
 
         <span>
-          SCROLL TO ZOOM
+          SCROLL TO SCALE
         </span>
 
       </div>

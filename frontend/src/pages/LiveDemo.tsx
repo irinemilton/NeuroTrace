@@ -13,6 +13,7 @@ import {
   Loader2,
   Upload,
 } from "lucide-react";
+import SpatialBackdrop from "../components/SpatialBackdrop";
 
 
 /* =========================================================
@@ -313,6 +314,7 @@ export default function LiveDemo() {
     <div
       className="live-demo-page"
     >
+      <SpatialBackdrop />
 
 
       {/* ===================================================

@@ -2,6 +2,9 @@ import {
   Brain,
   CheckCircle2,
   ScanLine,
+  Activity,
+  Bell,
+  Search,
 } from "lucide-react";
 
 interface TopBarProps {
@@ -25,6 +28,11 @@ export default function TopBar({ subjectId }: TopBarProps) {
       </div>
 
       <div className="top-status">
+        <div className="top-command-icons" aria-label="Workspace controls">
+          <button type="button" title="Analysis activity"><Activity size={15} /></button>
+          <button type="button" title="Notifications"><Bell size={15} /></button>
+          <button type="button" title="Search structures"><Search size={15} /></button>
+        </div>
         <div className="subject-info">
           <span className="status-label">SUBJECT</span>
           <span className="subject-value">{subjectId}</span>

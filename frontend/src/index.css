@@ -470,6 +470,13 @@ button {
 
   overflow: hidden;
 }
+.brain-stage,
+.brain-viewer {
+  border-color: rgba(119, 209, 206, .22) !important;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(38, 112, 121, .5), transparent 39%),
+    linear-gradient(145deg, #061820 0%, #0b2932 58%, #051218 100%) !important;
+}
 
 .brain-viewer canvas {
   display: block !important;
@@ -1833,3 +1840,1260 @@ button {
 .shap-row b { font-size: 10px; text-align: right; }
 .live-analysis-report-card{margin:24px;padding:24px;border:1px solid #e1e6ea;border-radius:16px;background:#fff}.live-analysis-report-card h2{margin:6px 0 18px;color:#17212b;font-size:22px}.live-analysis-report-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.live-analysis-report-grid>div{padding:14px;border:1px solid #e2e7eb;border-radius:10px;background:#fbfcfd}.live-analysis-report-grid strong{display:block;margin-top:7px;color:#2b4251;font-size:12px;line-height:1.45}.live-analysis-report-card p{margin:18px 0 0;color:#8997a1;font-size:11px;line-height:1.7}.live-analysis-back-row{display:flex;justify-content:flex-end;margin:0 24px 32px}
 @media(max-width:1100px){.live-analysis-metrics,.live-analysis-region-grid,.live-analysis-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:720px){.live-analysis-result-card,.live-analysis-report-card{margin:14px;padding:16px}.live-analysis-result-header{flex-direction:column}.live-analysis-metrics,.live-analysis-region-grid,.live-analysis-report-grid,.live-analysis-explanation-grid{grid-template-columns:1fr}.live-analysis-back-row{margin:0 14px 24px}}
+
+.slice-viewer-card{margin:24px;padding:24px;border:1px solid #e1e6ea;border-radius:16px;background:#fff;box-shadow:0 10px 35px rgba(30,40,50,.045)}
+.brain-health-summary{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr);gap:28px;margin:24px;padding:24px;border:1px solid #dce7ed;border-radius:16px;background:linear-gradient(135deg,#f8fbfd,#fff);box-shadow:0 8px 25px rgba(30,50,65,.04)}.brain-health-summary h1{margin:6px 0 8px;color:#173344;font-size:25px}.summary-classification{margin:0;color:#3d5665;font-size:15px;line-height:1.6}.summary-disclaimer{margin:12px 0 0;color:#7b8b95;font-size:11px}.summary-findings{padding-left:24px;border-left:1px solid #e1e9ee;color:#354f60}.summary-findings strong{font-size:12px}.summary-findings ul{margin:9px 0 14px;padding-left:18px;font-size:12px;line-height:1.8}.summary-legend{display:flex;flex-wrap:wrap;gap:12px;color:#71838d;font-size:10px}.legend-dot{display:inline-block;width:8px;height:8px;margin-right:4px;border-radius:50%}.legend-positive{background:#d77d68}.legend-negative{background:#70a2b7}.legend-neutral{background:#bdc8ce}
+.guided-view-controls{position:absolute;z-index:3;top:14px;left:14px;right:14px;display:flex;flex-wrap:wrap;gap:6px}.guided-view-controls button,.finding-nav-buttons button{display:inline-flex;align-items:center;gap:5px;padding:8px 10px;border:1px solid #d5e0e6;border-radius:8px;background:rgba(255,255,255,.94);color:#456071;font-size:10px;font-weight:650;cursor:pointer}.guided-view-controls button.active,.guided-view-controls button:hover{border-color:#6d9fba;background:#edf7fb;color:#1d5b78}.finding-navigator{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:0 24px 24px;padding:18px 20px;border:1px solid #d6e5ec;border-radius:14px;background:#f6fbfd}.finding-navigator h2{margin:5px 0;color:#23485c;font-size:18px;text-transform:capitalize}.finding-navigator p{margin:0;color:#526b78;font-size:12px;line-height:1.55}.finding-navigator small{display:block;margin-top:8px;color:#81939d;font-size:10px}.finding-nav-buttons{display:flex;align-items:center;gap:8px;white-space:nowrap}.finding-nav-buttons span{color:#607b89;font-size:11px}
+.advanced-controls{margin-right:auto}.advanced-controls summary{padding:7px 9px;color:#617884;font-size:10px;cursor:pointer;list-style:none}.advanced-controls summary:before{content:"＋ ";color:#50809a}.advanced-controls[open] summary:before{content:"− "}.advanced-controls-content{display:flex;align-items:center;gap:10px;padding:5px 8px;border:1px solid #dbe5ea;border-radius:8px;background:rgba(255,255,255,.94)}
+@media(max-width:720px){.brain-health-summary{grid-template-columns:1fr;margin:14px;padding:17px;gap:16px}.summary-findings{padding:0;border-left:0;border-top:1px solid #e1e9ee;padding-top:14px}.guided-view-controls{position:relative;top:auto;left:auto;right:auto;padding:10px;background:#f6f9fa}.finding-navigator{margin:0 14px 16px;align-items:flex-start;flex-direction:column}.advanced-controls-content{flex-wrap:wrap}}
+.slice-viewer-header{display:flex;align-items:center;justify-content:space-between;gap:16px}.slice-viewer-header h2{margin:6px 0 0;color:#17212b;font-size:22px}.slice-viewer-header label{color:#687984;font-size:10px}.slice-viewer-header input{vertical-align:middle}
+.slice-viewer-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}.slice-panel{padding:12px;border:1px solid #e2e7eb;border-radius:12px;background:#101820;color:#d9e6ed}.slice-panel>strong{display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:.1em;font-size:10px}.slice-panel img,.slice-placeholder{display:block;width:100%;aspect-ratio:1/1;object-fit:contain;background:#05080b}.slice-placeholder{display:grid;place-items:center;color:#8397a3;font-size:11px}.slice-panel input{width:100%;margin-top:10px}.slice-panel>span{display:block;margin-top:4px;color:#94aab5;font-size:10px;text-align:right}
+@media(max-width:800px){.slice-viewer-grid{grid-template-columns:1fr}.slice-viewer-header{align-items:flex-start;flex-direction:column}.volume-summary-grid{grid-template-columns:1fr}}
+
+/* Dashboard command center */
+.dashboard-command-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, .75fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+.dashboard-visual-card,
+.dashboard-activity-card {
+  overflow: hidden;
+  border: 1px solid #dce5eb;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 14px 40px rgba(24, 49, 65, .07);
+}
+.dashboard-visual-header,
+.dashboard-activity-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px 16px;
+}
+.dashboard-visual-header h2,
+.dashboard-activity-heading h2 {
+  margin: 5px 0 0;
+  color: #18303e;
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -.025em;
+}
+.dashboard-visual-header p {
+  margin: 6px 0 0;
+  color: #82939d;
+  font-size: 11px;
+}
+.dashboard-view-mode,
+.dashboard-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #4a8294;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: .12em;
+  white-space: nowrap;
+}
+.dashboard-view-mode svg { width: 14px; height: 14px; }
+.dashboard-live-badge { color: #5e9c7d; }
+.dashboard-live-badge i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #65b58c;
+  box-shadow: 0 0 0 4px rgba(101,181,140,.13);
+  animation: dashboard-pulse 1.5s ease-in-out infinite;
+}
+.dashboard-brain-stage {
+  position: relative;
+  height: 430px;
+  margin: 0 12px;
+  overflow: hidden;
+  border: 1px solid #1c3946;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(40,102,119,.52), transparent 38%),
+    linear-gradient(145deg, #09171f, #102b36 58%, #07141a);
+}
+.dashboard-brain-stage::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: linear-gradient(rgba(129,190,201,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(129,190,201,.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+  content: "";
+  mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 80%, transparent);
+}
+.dashboard-brain-stage .brain-viewer {
+  z-index: 1;
+  min-height: 0;
+  height: 100%;
+}
+.dashboard-brain-stage .viewer-label {
+  border-color: rgba(137,206,211,.25);
+  background: rgba(5, 20, 27, .7);
+  color: #a5d4d6;
+}
+.dashboard-brain-stage .viewer-controls {
+  border-color: rgba(137,206,211,.25);
+  background: rgba(5, 20, 27, .72);
+}
+.dashboard-brain-stage .viewer-controls button,
+.dashboard-brain-stage .viewer-controls span { color: #9ec8cc; }
+.dashboard-stage-hint {
+  position: absolute;
+  right: 16px;
+  top: 17px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #80aeb4;
+  font-size: 9px;
+  letter-spacing: .04em;
+}
+.dashboard-stage-hint span { display: flex; align-items: center; gap: 6px; }
+.dashboard-stage-hint svg { width: 12px; height: 12px; }
+.dashboard-region-strip {
+  display: flex;
+  gap: 7px;
+  padding: 12px 24px 16px;
+  overflow-x: auto;
+}
+.dashboard-region-strip button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid #e0e8ec;
+  border-radius: 999px;
+  background: #f8fafb;
+  color: #748891;
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+  text-transform: capitalize;
+  transition: all .2s ease;
+}
+.dashboard-region-strip button:hover,
+.dashboard-region-strip button.active {
+  border-color: #8bbfc4;
+  background: #e9f5f5;
+  color: #286d76;
+}
+.dashboard-region-strip button span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #76afb5;
+}
+.dashboard-activity-card {
+  align-self: stretch;
+  padding-bottom: 18px;
+}
+.dashboard-activity-heading {
+  padding-bottom: 20px;
+  border-bottom: 1px solid #edf2f4;
+}
+.dashboard-pipeline-steps { padding: 12px 20px 6px; }
+.dashboard-pipeline-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 30px 1fr auto;
+  gap: 11px;
+  align-items: center;
+  min-height: 74px;
+}
+.dashboard-pipeline-step:not(:last-child)::after {
+  position: absolute;
+  top: 48px;
+  left: 14px;
+  width: 1px;
+  height: 32px;
+  background: #dce8eb;
+  content: "";
+}
+.dashboard-step-icon {
+  display: grid;
+  place-items: center;
+  width: 29px;
+  height: 29px;
+  border: 1px solid #dce7ea;
+  border-radius: 9px;
+  background: #f5f9fa;
+  color: #79939e;
+}
+.dashboard-step-icon svg { width: 14px; height: 14px; }
+.dashboard-pipeline-step.active .dashboard-step-icon {
+  border-color: #8cc4c3;
+  background: #e7f7f4;
+  color: #428d83;
+  box-shadow: 0 0 0 4px rgba(104,184,165,.11);
+}
+.dashboard-pipeline-step.done .dashboard-step-icon { color: #4c9b77; }
+.dashboard-step-copy { min-width: 0; }
+.dashboard-step-copy strong {
+  display: block;
+  color: #34515e;
+  font-size: 11px;
+  font-weight: 650;
+}
+.dashboard-step-copy span {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: #94a4ab;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dashboard-step-state {
+  color: #a2b0b6;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: .08em;
+}
+.dashboard-pipeline-step.active .dashboard-step-state { color: #428d83; }
+.dashboard-pipeline-step.done .dashboard-step-state { color: #4c9b77; }
+.dashboard-activity-footer {
+  display: flex;
+  justify-content: space-between;
+  margin: 15px 20px 16px;
+  padding-top: 15px;
+  border-top: 1px solid #edf2f4;
+  color: #9aaab0;
+  font-size: 9px;
+}
+.dashboard-activity-footer strong { color: #53717c; font-weight: 600; }
+.dashboard-rail-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 20px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: #eff7f7;
+  color: #3d7f87;
+  font-size: 10px;
+  font-weight: 650;
+  text-decoration: none;
+}
+.dashboard-rail-link svg { width: 14px; height: 14px; transition: transform .2s ease; }
+.dashboard-rail-link:hover svg { transform: translateX(3px); }
+@media (max-width: 980px) {
+  .dashboard-command-grid { grid-template-columns: 1fr; }
+  .dashboard-brain-stage { height: 390px; }
+}
+@media (max-width: 620px) {
+  .dashboard-visual-header, .dashboard-activity-heading { padding-left: 16px; padding-right: 16px; }
+  .dashboard-brain-stage { height: 330px; margin: 0 8px; }
+  .dashboard-region-strip { padding-left: 16px; padding-right: 16px; }
+  .dashboard-stage-hint { display: none; }
+}
+
+/* ============================================================
+   NEUROTRACE COMMAND-ROOM THEME
+   Shared across dashboard, analysis, live demo and result views.
+============================================================ */
+:root {
+  --nt-ink: #e5f1f0;
+  --nt-muted: #88a5a8;
+  --nt-line: rgba(106, 169, 171, .2);
+  --nt-panel: rgba(11, 29, 35, .88);
+  --nt-panel-strong: #102c34;
+  --nt-cyan: #77d1ce;
+  --nt-lime: #d5dc98;
+  --nt-purple: #9b86e8;
+}
+.top-bar {
+  background: rgba(4, 15, 19, .86) !important;
+  border-bottom-color: var(--nt-line) !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,.2);
+  color: var(--nt-ink);
+}
+.brand-name { color: var(--nt-ink) !important; }
+.brand-subtitle, .status-label { color: var(--nt-muted) !important; }
+.brand-icon {
+  border-color: rgba(119,209,206,.32) !important;
+  background: rgba(119,209,206,.1) !important;
+  color: var(--nt-cyan) !important;
+}
+.top-status { gap: 10px !important; }
+.top-command-icons { display: flex; gap: 5px; margin-right: 10px; }
+.top-command-icons button {
+  display: grid;
+  place-items: center;
+  width: 31px;
+  height: 31px;
+  border: 1px solid var(--nt-line);
+  border-radius: 8px;
+  background: rgba(25, 66, 74, .55);
+  color: #8ab6b7;
+  cursor: pointer;
+  transition: .2s ease;
+}
+.top-command-icons button:hover { border-color: var(--nt-cyan); color: var(--nt-cyan); transform: translateY(-1px); }
+.subject-value, .status-pill { color: var(--nt-ink) !important; }
+.status-pill {
+  border-color: var(--nt-line) !important;
+  background: rgba(27, 66, 72, .55) !important;
+}
+.structure-panel, .analysis-panel, .model-summary, .slice-viewer-card {
+  border-color: var(--nt-line) !important;
+  background: var(--nt-panel) !important;
+  color: var(--nt-ink);
+  box-shadow: 0 18px 50px rgba(0,0,0,.2) !important;
+}
+.panel-heading, .analysis-header, .model-header, .slice-viewer-header {
+  border-color: var(--nt-line) !important;
+}
+.panel-heading h2, .analysis-header h2, .model-header h2, .slice-viewer-header h2,
+.measurement-value, .prediction-box strong, .confidence-box strong {
+  color: var(--nt-ink) !important;
+}
+.eyebrow, .section-title, .metric-label, .measurement-heading, .model-disclaimer,
+.analysis-empty p, .panel-footer, .footer-stat span, .measurement-label {
+  color: var(--nt-muted) !important;
+}
+.search-box, .prediction-box, .confidence-box, .explanation-box, .measurement-block,
+.overview-grid, .model-signal {
+  border-color: var(--nt-line) !important;
+  background: rgba(20, 55, 62, .48) !important;
+}
+.search-box input { color: var(--nt-ink) !important; }
+.region-item {
+  border-color: transparent !important;
+  color: #b0c4c4 !important;
+}
+.region-item:hover, .region-item.selected {
+  border-color: rgba(119,209,206,.45) !important;
+  background: rgba(119,209,206,.12) !important;
+  color: var(--nt-cyan) !important;
+  box-shadow: inset 3px 0 var(--nt-cyan), 0 0 20px rgba(119,209,206,.08);
+}
+.region-category { color: #739497 !important; }
+.region-dot { background: #406f74 !important; }
+.region-dot.active { background: var(--nt-cyan) !important; box-shadow: 0 0 12px var(--nt-cyan); }
+.analysis-empty .empty-icon, .structure-icon {
+  border-color: rgba(155,134,232,.35) !important;
+  background: rgba(155,134,232,.12) !important;
+  color: #b0a1f4 !important;
+}
+.app-shell .analysis-panel .measurement,
+.app-shell .analysis-panel .asymmetry-card,
+.app-shell .analysis-panel .analysis-note,
+.app-shell .analysis-panel .overview-stat {
+  border: 1px solid rgba(119,209,206,.18) !important;
+  background: rgba(20,55,62,.48) !important;
+  color: var(--nt-ink) !important;
+}
+.app-shell .analysis-panel .measurement span,
+.app-shell .analysis-panel .unit-label,
+.app-shell .analysis-panel .info-row span,
+.app-shell .analysis-panel .analysis-note,
+.app-shell .analysis-panel .overview-stat span {
+  color: var(--nt-muted) !important;
+}
+.app-shell .analysis-panel .measurement strong,
+.app-shell .analysis-panel .asymmetry-value,
+.app-shell .analysis-panel .info-row strong,
+.app-shell .analysis-panel .overview-stat strong {
+  color: var(--nt-ink) !important;
+}
+.app-shell .analysis-panel .asymmetry-card {
+  box-shadow: inset 0 0 24px rgba(119,209,206,.035);
+}
+.app-shell .analysis-panel .analysis-header,
+.app-shell .analysis-panel .measurement-block,
+.app-shell .analysis-panel .analysis-info {
+  border-color: var(--nt-line) !important;
+}
+.model-signal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 22px 16px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  color: #9fbdbe;
+  font-size: 9px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.model-signal svg { color: var(--nt-lime); }
+.model-signal i {
+  width: 5px;
+  height: 5px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: #74d2a0;
+  box-shadow: 0 0 0 4px rgba(116,210,160,.12);
+}
+.model-signal strong { color: #74d2a0; font-size: 8px; }
+.brain-viewer {
+  border: 1px solid var(--nt-line) !important;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(55,126,133,.44), transparent 35%),
+    linear-gradient(145deg, #07171d, #0b252d 60%, #061117) !important;
+}
+.brain-viewer::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(119,209,206,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(119,209,206,.045) 1px, transparent 1px);
+  background-size: 28px 28px;
+  content: "";
+  mask-image: linear-gradient(to bottom, transparent, #000 20%, #000 80%, transparent);
+}
+.slice-viewer-card { margin-top: 18px !important; }
+.slice-viewer-header label { color: var(--nt-muted) !important; }
+
+/* Convert the dashboard from a document into a dark operational canvas. */
+.dashboard-page {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 76% 12%, rgba(42,104,110,.2), transparent 27%),
+    #061218 !important;
+  color: var(--nt-ink) !important;
+}
+.dashboard-page::before {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(119,209,206,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(119,209,206,.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  content: "";
+  mask-image: linear-gradient(to bottom, #000, transparent 90%);
+}
+.dashboard-topbar, .dashboard-hero-card, .dashboard-pipeline-card, .dashboard-panel,
+.dashboard-metric, .dashboard-visual-card, .dashboard-activity-card {
+  position: relative;
+  z-index: 1;
+  border-color: var(--nt-line) !important;
+  background: rgba(10, 31, 38, .83) !important;
+  box-shadow: 0 18px 50px rgba(0,0,0,.18) !important;
+}
+.dashboard-brand-name, .dashboard-hero-card h1, .dashboard-panel-header h2,
+.dashboard-system-panel h2, .dashboard-metric-value, .dashboard-visual-header h2,
+.dashboard-activity-heading h2, .dashboard-progress-count { color: var(--nt-ink) !important; }
+.dashboard-brand-subtitle, .dashboard-hero-card p, .dashboard-visual-header p,
+.dashboard-metric-subtitle, .dashboard-progress-label, .dashboard-progress-footer,
+.dashboard-auto-refresh, .dashboard-subject-meta { color: var(--nt-muted) !important; }
+.dashboard-brand-icon, .dashboard-hero-icon, .dashboard-metric-icon {
+  border: 1px solid var(--nt-line);
+  background: rgba(119,209,206,.1) !important;
+  color: var(--nt-cyan) !important;
+}
+.dashboard-primary-button { border-color: #63aaa8 !important; background: #337f82 !important; box-shadow: 0 0 20px rgba(99,170,168,.18); }
+.dashboard-secondary-button { border-color: var(--nt-line) !important; background: rgba(18,55,62,.7) !important; color: #a9c1c2 !important; }
+.dashboard-secondary-button:hover { border-color: var(--nt-cyan) !important; background: rgba(36,88,94,.8) !important; }
+.dashboard-status-pill, .dashboard-pipeline-label strong { color: var(--nt-ink) !important; }
+.dashboard-status-pill { border-color: var(--nt-line) !important; background: rgba(22,59,65,.72) !important; }
+.dashboard-progress-track { background: rgba(112,175,175,.14) !important; }
+.dashboard-progress-fill { background: linear-gradient(90deg, #58a9a6, #d4db95) !important; box-shadow: 0 0 14px rgba(88,169,166,.4); }
+.dashboard-subject { border-color: var(--nt-line) !important; color: var(--nt-ink) !important; }
+.dashboard-subject:hover { background: rgba(119,209,206,.08) !important; }
+.dashboard-subject-id { color: var(--nt-ink) !important; }
+.dashboard-subject-state.complete, .dashboard-system-dot.good + strong { color: #72d09d !important; }
+.dashboard-info-box { border-color: var(--nt-line) !important; background: rgba(48,93,92,.2) !important; }
+
+/* Analysis and live-demo canvases inherit the same control-room atmosphere. */
+body {
+  background: #061218 !important;
+  color: var(--nt-ink);
+}
+.app-shell {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 54% 18%, rgba(32,93,100,.22), transparent 34%),
+    #061218;
+}
+.app-shell::before, .live-demo-page::before {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(119,209,206,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(119,209,206,.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  content: "";
+  mask-image: linear-gradient(to bottom, #000, transparent 90%);
+}
+.analysis-layout, .live-demo-content, .live-demo-topbar, .brain-health-summary,
+.live-analysis-result-card, .live-analysis-report-card {
+  position: relative;
+  z-index: 1;
+}
+.live-demo-page {
+  position: relative;
+  overflow: hidden;
+  background: #061218 !important;
+  color: var(--nt-ink) !important;
+}
+.live-demo-page .live-demo-hero,
+.live-demo-page .live-demo-card,
+.live-demo-page .live-demo-mode,
+.live-demo-page .live-demo-dropzone,
+.live-demo-page .live-demo-file,
+.live-demo-page .live-demo-step,
+.live-demo-page .live-demo-result-box,
+.live-demo-page .live-demo-mini,
+.live-demo-page .live-demo-empty {
+  border-color: rgba(119, 209, 206, .22) !important;
+  background: rgba(10, 31, 38, .9) !important;
+  color: var(--nt-ink) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .2) !important;
+}
+.live-demo-page .live-demo-topbar {
+  border-color: rgba(119, 209, 206, .22) !important;
+  background: rgba(5, 22, 28, .92) !important;
+}
+.live-demo-page .live-demo-back {
+  border-color: rgba(119, 209, 206, .22) !important;
+  background: rgba(20, 60, 67, .75) !important;
+  color: #a9caca !important;
+}
+.live-demo-page .live-demo-back:hover {
+  border-color: var(--nt-cyan) !important;
+  background: rgba(119, 209, 206, .14) !important;
+}
+.live-demo-page .live-demo-mode.active {
+  border-color: var(--nt-cyan) !important;
+  background: rgba(119, 209, 206, .14) !important;
+  box-shadow: inset 0 0 0 1px rgba(119, 209, 206, .2), 0 0 26px rgba(119, 209, 206, .1) !important;
+}
+.live-demo-page .live-demo-mode:hover,
+.live-demo-page .live-demo-dropzone:hover {
+  border-color: var(--nt-cyan) !important;
+  background: rgba(119, 209, 206, .1) !important;
+}
+.live-demo-page .live-demo-mode p,
+.live-demo-page .live-demo-step strong,
+.live-demo-page .live-demo-result-meta,
+.live-demo-page .live-demo-model-note,
+.live-demo-page .live-demo-empty p {
+  color: var(--nt-muted) !important;
+}
+.live-demo-page .live-demo-upload-icon,
+.live-demo-page .live-demo-hero-icon,
+.live-demo-page .live-demo-empty-icon {
+  border: 1px solid rgba(119, 209, 206, .22);
+  background: rgba(119, 209, 206, .1) !important;
+  color: var(--nt-cyan) !important;
+}
+.live-demo-page .live-demo-run {
+  border-color: #63aaa8 !important;
+  background: #337f82 !important;
+  box-shadow: 0 0 20px rgba(99, 170, 168, .18);
+}
+.live-demo-page .live-demo-error {
+  border-color: rgba(239, 112, 126, .38) !important;
+  background: rgba(92, 27, 40, .45) !important;
+  color: #f0a1aa !important;
+}
+.live-demo-page .live-demo-confidence { background: rgba(112, 175, 175, .14) !important; }
+.live-demo-page .live-demo-confidence div { background: linear-gradient(90deg, #58a9a6, #d4db95) !important; }
+.live-demo-page .live-demo-mini div,
+.live-demo-page .live-demo-result-eyebrow { color: #7e9fa3 !important; }
+.live-demo-page .live-demo-result-value,
+.live-demo-page .live-demo-mini strong,
+.live-demo-page .live-demo-step strong { color: var(--nt-ink) !important; }
+.live-demo-page .live-demo-canvas {
+  border-color: rgba(119, 209, 206, .22) !important;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(38, 112, 121, .5), transparent 39%),
+    linear-gradient(145deg, #061820 0%, #0b2932 58%, #051218 100%) !important;
+}
+
+@media (min-width: 760px) {
+  .live-demo-page .live-demo-content {
+    max-width: 1540px;
+    padding: 8px 18px 40px;
+  }
+  .live-demo-page .live-demo-hero {
+    position: relative;
+    min-height: 340px;
+    padding: 38px 42px;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 78% 45%, rgba(51,127,130,.2), transparent 28%),
+      rgba(8, 31, 38, .72) !important;
+    backdrop-filter: blur(18px);
+  }
+  .live-demo-page .live-demo-hero::after {
+    position: absolute;
+    right: 9%;
+    top: 28%;
+    width: 170px;
+    height: 170px;
+    border: 1px solid rgba(119,209,206,.24);
+    border-radius: 50%;
+    box-shadow: 0 0 0 25px rgba(119,209,206,.04), 0 0 0 50px rgba(119,209,206,.025);
+    content: "";
+    pointer-events: none;
+    animation: spatial-orbit 9s linear infinite;
+  }
+  .live-demo-page .live-demo-hero-row {
+    position: relative;
+    z-index: 1;
+    max-width: 620px;
+  }
+  .live-demo-page .live-demo-hero h1 {
+    font-size: clamp(32px, 4vw, 54px);
+    line-height: 1.02;
+  }
+  .live-demo-page .live-demo-hero p {
+    max-width: 560px;
+    font-size: 13px;
+  }
+  .live-demo-page .live-demo-hero-icon {
+    position: absolute;
+    right: 12%;
+    top: 48px;
+    width: 92px;
+    height: 92px;
+    border-radius: 28px;
+    box-shadow: 0 0 40px rgba(119,209,206,.16);
+    animation: spatial-float 4s ease-in-out infinite;
+  }
+  .live-demo-page .live-demo-hero-icon svg { width: 44px; height: 44px; }
+  .live-demo-page .live-demo-mode-grid {
+    position: relative;
+    z-index: 2;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 760px;
+    margin-top: 38px;
+  }
+  .live-demo-page .live-demo-mode {
+    min-height: 150px;
+    padding: 20px;
+    text-align: left;
+    backdrop-filter: blur(12px);
+  }
+  .live-demo-page .live-demo-work-grid {
+    position: relative;
+    grid-template-columns: minmax(320px, .72fr) minmax(0, 1.28fr);
+    gap: 20px;
+    margin-top: 20px;
+  }
+  .live-demo-page .live-demo-work-grid::before {
+    position: absolute;
+    left: 28%;
+    top: 50%;
+    width: 44%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(119,209,206,.35), transparent);
+    content: "";
+    pointer-events: none;
+  }
+  .live-demo-page .upload-card,
+  .live-demo-page .pipeline-card {
+    min-height: 330px;
+    backdrop-filter: blur(16px);
+  }
+  .live-demo-page .upload-card {
+    transform: translateY(8px);
+  }
+  .live-demo-page .pipeline-card {
+    transform: translateY(-4px);
+  }
+  .live-demo-page .live-demo-card:hover {
+    transform: translateY(-8px);
+    border-color: rgba(119,209,206,.55) !important;
+    box-shadow: 0 24px 60px rgba(0,0,0,.32), 0 0 28px rgba(119,209,206,.08) !important;
+  }
+  .live-demo-page .live-demo-steps {
+    gap: 10px;
+  }
+  .live-demo-page .live-demo-step {
+    min-height: 112px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .live-demo-page .live-demo-step:hover {
+    transform: translateY(-5px);
+    border-color: rgba(119,209,206,.5) !important;
+    background: rgba(119,209,206,.1) !important;
+  }
+}
+@keyframes spatial-float {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+@keyframes spatial-orbit {
+  to { transform: rotate(360deg); }
+}
+.live-demo-topbar, .live-demo-card {
+  border-color: var(--nt-line) !important;
+  background: rgba(10,31,38,.88) !important;
+  box-shadow: 0 18px 50px rgba(0,0,0,.2) !important;
+}
+.live-demo-brand-name, .live-demo-hero h1, .live-demo-card h2,
+.live-demo-mode-title, .live-demo-drop-title { color: var(--nt-ink) !important; }
+.live-demo-brand-subtitle, .live-demo-hero p, .live-demo-drop-subtitle,
+.live-demo-help, .live-demo-card-eyebrow { color: var(--nt-muted) !important; }
+.live-demo-brand-icon, .live-demo-mode-icon, .live-demo-hero-icon {
+  border-color: var(--nt-line) !important;
+  background: rgba(119,209,206,.1) !important;
+  color: var(--nt-cyan) !important;
+}
+.live-demo-mode-card, .live-demo-dropzone, .live-demo-file {
+  border-color: var(--nt-line) !important;
+  background: rgba(20,55,62,.48) !important;
+}
+.live-demo-mode-card.selected, .live-demo-dropzone:hover {
+  border-color: var(--nt-cyan) !important;
+  box-shadow: 0 0 26px rgba(119,209,206,.12);
+}
+.brain-health-summary, .live-analysis-result-card, .live-analysis-report-card {
+  border-color: var(--nt-line) !important;
+  background: rgba(10,31,38,.88) !important;
+  box-shadow: 0 18px 50px rgba(0,0,0,.2) !important;
+}
+.brain-health-summary h2, .summary-classification, .live-analysis-result-header h2,
+.live-analysis-report-card h2, .live-analysis-metric strong, .live-analysis-region strong {
+  color: var(--nt-ink) !important;
+}
+.summary-disclaimer, .live-analysis-result-header p, .live-analysis-metric span,
+.live-analysis-region span, .live-analysis-region small, .live-analysis-report-grid span,
+.live-analysis-report-card p { color: var(--nt-muted) !important; }
+.live-analysis-metric, .live-analysis-region, .live-analysis-feature,
+.live-analysis-report-grid > div, .volume-summary-stat {
+  border-color: var(--nt-line) !important;
+  background: rgba(20,55,62,.48) !important;
+}
+.live-analysis-feature strong, .live-analysis-feature > span { color: var(--nt-cyan) !important; }
+.guided-view-controls, .finding-navigator {
+  border-color: var(--nt-line) !important;
+  background: rgba(10,31,38,.82) !important;
+}
+.guided-view-controls button { color: #a9c1c2 !important; }
+.guided-view-controls button.active { background: rgba(119,209,206,.18) !important; color: var(--nt-cyan) !important; }
+.neuro-network-shell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  margin-top: 16px;
+  overflow: hidden;
+  border: 1px solid var(--nt-line);
+  border-radius: 20px;
+  background: rgba(8, 27, 34, .9);
+  box-shadow: 0 18px 50px rgba(0,0,0,.2);
+}
+.neuro-network-toolbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--nt-line);
+}
+.neuro-network-title { display: flex; align-items: center; gap: 7px; margin-right: auto; color: var(--nt-cyan); font-size: 9px; font-weight: 750; letter-spacing: .12em; }
+.neuro-network-title i { width: 5px; height: 5px; border-radius: 50%; background: #72d09d; box-shadow: 0 0 0 4px rgba(114,208,157,.12); }
+.neuro-network-toolbar button, .neuro-network-search {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 5px 9px;
+  border: 1px solid var(--nt-line); border-radius: 7px; background: rgba(24,64,71,.55); color: #9cbbbc; font-size: 9px; cursor: pointer;
+}
+.neuro-network-toolbar button:hover, .neuro-network-toolbar button.active { border-color: var(--nt-cyan); color: var(--nt-cyan); background: rgba(119,209,206,.12); }
+.neuro-network-search { width: 140px; color: #789c9f; }
+.neuro-network-search input { width: 100%; border: 0; outline: 0; background: transparent; color: var(--nt-ink); font-size: 9px; }
+.neuro-network-stage { position: relative; min-height: 480px; overflow: hidden; }
+.neuro-network-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(119,209,206,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(119,209,206,.045) 1px, transparent 1px); background-size: 32px 32px; mask-image: radial-gradient(circle, #000 10%, transparent 80%); }
+.neuro-network-stage svg { position: absolute; inset: 0; width: 100%; height: 100%; transform-origin: center; transition: transform .3s ease; }
+.network-link, .risk-link { fill: none; stroke-width: .28; stroke-dasharray: 1.2 1; animation: network-flow 3s linear infinite; }
+.network-link { stroke: rgba(119,209,206,.58); }
+.risk-link { stroke: rgba(239,112,126,.8); }
+@keyframes network-flow { to { stroke-dashoffset: -12; } }
+.neuro-network-nodes { position: absolute; inset: 0; transform-origin: center; transition: transform .3s ease; }
+.neuro-node { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 6px; transform: translate(-50%,-50%); background: transparent; color: #9ab7b8; cursor: pointer; transition: opacity .25s ease, filter .25s ease; }
+.neuro-node.dimmed { opacity: .14; }
+.neuro-node-orb { display: grid; place-items: center; width: 27px; height: 27px; border: 1px solid rgba(119,209,206,.7); border-radius: 50%; background: rgba(119,209,206,.13); box-shadow: 0 0 20px rgba(119,209,206,.2); }
+.neuro-node-orb b { width: 8px; height: 8px; border-radius: 50%; background: var(--nt-cyan); box-shadow: 0 0 12px var(--nt-cyan); }
+.neuro-node.core .neuro-node-orb { width: 62px; height: 62px; border: 2px solid var(--nt-lime); background: rgba(213,220,152,.12); box-shadow: 0 0 32px rgba(213,220,152,.26), inset 0 0 20px rgba(213,220,152,.15); animation: core-breathe 2.5s ease-in-out infinite; }
+.neuro-node.core .neuro-node-orb b { width: 24px; height: 24px; background: var(--nt-lime); box-shadow: 0 0 22px var(--nt-lime); }
+.neuro-node.anomaly .neuro-node-orb { border-color: #ef707e; background: rgba(239,112,126,.15); }
+.neuro-node.anomaly .neuro-node-orb b { background: #ef707e; box-shadow: 0 0 13px #ef707e; }
+@keyframes core-breathe { 50% { transform: scale(1.07); } }
+.neuro-node-label { max-width: 120px; padding: 4px 7px; border: 1px solid rgba(119,209,206,.16); border-radius: 6px; background: rgba(4,17,22,.86); font-size: 9px; white-space: nowrap; }
+.neuro-node:hover .neuro-node-label, .neuro-node.selected .neuro-node-label { border-color: var(--nt-cyan); color: var(--nt-ink); }
+.neuro-node.selected .neuro-node-orb { box-shadow: 0 0 0 5px rgba(119,209,206,.12), 0 0 25px var(--nt-cyan); }
+.neuro-network-legend { position: absolute; left: 16px; top: 16px; display: flex; flex-direction: column; gap: 7px; color: #78999c; font-size: 8px; }
+.neuro-network-legend span { display: flex; align-items: center; gap: 6px; }
+.neuro-network-legend i { width: 6px; height: 6px; border-radius: 50%; background: var(--nt-cyan); }
+.neuro-network-legend i.core { background: var(--nt-lime); }.neuro-network-legend i.anomaly { background: #ef707e; }
+.neuro-network-timeline { position: absolute; left: 16px; right: 16px; bottom: 15px; display: flex; align-items: center; gap: 8px; color: #799a9d; font-size: 8px; }
+.neuro-network-timeline input { flex: 1; accent-color: var(--nt-cyan); }
+.neuro-network-inspector { position: relative; padding: 24px 20px; border-left: 1px solid var(--nt-line); background: rgba(14,45,52,.7); }
+.neuro-inspector-close { position: absolute; top: 15px; right: 15px; display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid var(--nt-line); border-radius: 7px; background: transparent; color: #78999c; cursor: pointer; }
+.neuro-network-inspector h3 { margin: 8px 0 5px; color: var(--nt-ink); font-size: 20px; font-weight: 650; }
+.neuro-network-inspector p { margin: 0 0 20px; color: var(--nt-muted); font-size: 10px; line-height: 1.6; }
+.neuro-inspector-metric { display: grid; grid-template-columns: 1fr auto; gap: 6px; padding: 13px; border: 1px solid var(--nt-line); border-radius: 10px; background: rgba(5,20,27,.55); }
+.neuro-inspector-metric span, .neuro-inspector-grid span { color: var(--nt-muted); font-size: 8px; text-transform: uppercase; letter-spacing: .08em; }
+.neuro-inspector-metric strong { grid-row: 2; color: var(--nt-ink); font-size: 20px; }.neuro-inspector-metric strong.negative { color: #ef8d98; }.neuro-inspector-metric strong.positive { color: #72d09d; }
+.neuro-inspector-metric em { align-self: end; color: #e4b979; font-size: 9px; font-style: normal; }
+.neuro-inspector-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 8px; }.neuro-inspector-grid div { padding: 11px; border: 1px solid var(--nt-line); border-radius: 9px; }.neuro-inspector-grid strong { display: block; margin-top: 5px; color: var(--nt-ink); font-size: 11px; }
+.neuro-inspector-link { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 16px; padding: 11px; border: 1px solid rgba(119,209,206,.25); border-radius: 8px; background: rgba(119,209,206,.1); color: var(--nt-cyan); cursor: pointer; font-size: 10px; }
+.neuro-network-ask { grid-column: 1 / -1; display: flex; align-items: center; gap: 9px; margin: 0 16px 16px; padding: 8px 10px; border: 1px solid var(--nt-line); border-radius: 10px; background: rgba(4,17,22,.72); color: var(--nt-cyan); }.neuro-network-ask input { flex: 1; border: 0; outline: 0; background: transparent; color: var(--nt-ink); font-size: 10px; }.neuro-network-ask button { display: flex; align-items: center; gap: 5px; padding: 7px 10px; border-radius: 7px; background: #337f82; color: white; cursor: pointer; font-size: 9px; }
+.neuro-network-response { position: absolute; right: 18px; bottom: 56px; max-width: 320px; padding: 9px 11px; border: 1px solid rgba(119,209,206,.3); border-radius: 8px; background: rgba(8,31,38,.96); color: #a8caca; font-size: 9px; box-shadow: 0 10px 25px rgba(0,0,0,.25); }
+
+/* Remove remaining light-mode islands from the analysis viewer. */
+.app-shell .viewer-controls,
+.app-shell .advanced-controls-content,
+.app-shell .stage-info,
+.app-shell .overview-stat,
+.app-shell .model-content > div,
+.app-shell .model-details-button {
+  border-color: rgba(119, 209, 206, .22) !important;
+  background: rgba(8, 31, 38, .9) !important;
+  color: #a9c1c2 !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .22) !important;
+}
+.app-shell .viewer-controls {
+  color: #9ec8cc !important;
+  backdrop-filter: blur(14px);
+}
+.app-shell .advanced-controls-content {
+  background: rgba(8, 31, 38, .96) !important;
+}
+.app-shell .stage-info strong,
+.app-shell .stage-resolution,
+.app-shell .viewer-controls button,
+.app-shell .viewer-controls span,
+.app-shell .advanced-controls summary,
+.app-shell .viewer-opacity,
+.app-shell .viewer-color {
+  color: #a9caca !important;
+}
+.app-shell .stage-resolution {
+  border-color: rgba(119, 209, 206, .22) !important;
+}
+.app-shell .overview-stat strong,
+.app-shell .model-content > div strong {
+  color: #d9eeee !important;
+}
+.app-shell .overview-stat span,
+.app-shell .model-content > div span {
+  color: #7e9fa3 !important;
+}
+.app-shell .model-details-button {
+  color: #8dd2d0 !important;
+}
+.app-shell .model-content,
+.app-shell .prediction-placeholder,
+.app-shell .explanation-placeholder {
+  color: #9dbabb !important;
+}
+:fullscreen.brain-viewer {
+  background: #061820 !important;
+}
+@media (max-width: 800px) { .neuro-network-shell { grid-template-columns: 1fr; }.neuro-network-inspector { border-top: 1px solid var(--nt-line); border-left: 0; }.neuro-network-toolbar { flex-wrap: wrap; }.neuro-network-title { width: 100%; }.neuro-network-stage { min-height: 390px; } }
+.viewer-telemetry {
+  position: absolute;
+  top: 17px;
+  right: 18px;
+  z-index: 2;
+  display: flex;
+  gap: 7px;
+}
+.viewer-telemetry div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  border: 1px solid var(--nt-line);
+  border-radius: 8px;
+  background: rgba(5,20,27,.72);
+  color: #79b4b6;
+  font-size: 8px;
+  letter-spacing: .08em;
+}
+.viewer-telemetry svg { color: var(--nt-cyan); }
+.viewer-telemetry span { color: #77999d; }
+.viewer-telemetry strong { color: var(--nt-ink); font-size: 8px; font-weight: 700; }
+.result-command-strip {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin: 12px 0;
+  padding: 10px 14px;
+  overflow-x: auto;
+  border: 1px solid var(--nt-line);
+  border-radius: 12px;
+  background: rgba(10,31,38,.8);
+  box-shadow: 0 12px 30px rgba(0,0,0,.16);
+}
+.result-command-strip > div:not(.result-command-title) {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: max-content;
+}
+.result-command-strip span {
+  color: var(--nt-muted);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+.result-command-strip strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--nt-ink);
+  font-size: 10px;
+  font-weight: 650;
+}
+.result-command-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: max-content;
+  padding-right: 20px;
+  border-right: 1px solid var(--nt-line);
+  color: var(--nt-cyan);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: .1em;
+}
+.result-command-title i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #72d09d;
+  box-shadow: 0 0 0 4px rgba(114,208,157,.12);
+  animation: dashboard-pulse 1.5s ease-in-out infinite;
+}
+.summary-findings > strong { display: flex; align-items: center; gap: 6px; color: var(--nt-cyan) !important; }
+.summary-findings > strong svg { color: var(--nt-lime); }
+
+/* Result-page light cards and controls */
+.app-shell .live-analysis-result-card,
+.app-shell .live-analysis-report-card,
+.app-shell .brain-health-summary,
+.app-shell .slice-viewer-card {
+  border-color: rgba(119, 209, 206, .22) !important;
+  background: rgba(8, 31, 38, .9) !important;
+  color: var(--nt-ink) !important;
+}
+.app-shell .brain-health-summary h1,
+.app-shell .live-analysis-result-header h2,
+.app-shell .live-analysis-report-card h2,
+.app-shell .summary-classification,
+.app-shell .summary-findings,
+.app-shell .live-analysis-metric strong,
+.app-shell .live-analysis-region strong,
+.app-shell .live-analysis-feature strong,
+.app-shell .volume-summary-stat strong,
+.app-shell .live-analysis-report-grid strong {
+  color: var(--nt-ink) !important;
+}
+.app-shell .summary-disclaimer,
+.app-shell .summary-findings ul,
+.app-shell .summary-legend,
+.app-shell .live-analysis-result-header p,
+.app-shell .live-analysis-metric span,
+.app-shell .live-analysis-region span,
+.app-shell .live-analysis-region small,
+.app-shell .live-analysis-feature small,
+.app-shell .measurement-disclaimer,
+.app-shell .live-analysis-report-card p {
+  color: var(--nt-muted) !important;
+}
+.app-shell .live-analysis-metric,
+.app-shell .live-analysis-region,
+.app-shell .live-analysis-feature,
+.app-shell .volume-summary-stat,
+.app-shell .live-analysis-report-grid > div {
+  border-color: rgba(119, 209, 206, .18) !important;
+  background: rgba(20, 55, 62, .48) !important;
+}
+.app-shell .live-analysis-mode-badge {
+  border-color: rgba(119, 209, 206, .28) !important;
+  background: rgba(119, 209, 206, .1) !important;
+  color: #a9caca !important;
+}
+.app-shell .risk-summary {
+  border-color: rgba(119, 209, 206, .2) !important;
+  background: rgba(20, 55, 62, .48) !important;
+}
+.app-shell .risk-summary > div:first-child,
+.app-shell .risk-summary > div:first-child strong {
+  color: var(--nt-cyan) !important;
+}
+.app-shell .risk-summary > div:first-child span {
+  color: var(--nt-muted) !important;
+}
+.app-shell .risk-factor-list button {
+  border-color: rgba(239, 112, 126, .35) !important;
+  background: rgba(92, 27, 40, .38) !important;
+  color: #e5a1aa !important;
+}
+.app-shell .risk-factor-list b { color: #ef8d98 !important; }
+.app-shell .protective-list { color: #9ebcbd !important; }
+.app-shell .protective-list span:not(:first-child) { background: rgba(114, 208, 157, .12) !important; color: #9ed0b4 !important; }
+.app-shell .prediction-gauge-track { background: linear-gradient(90deg, #5b9b83 0 50%, #9d5964 50%) !important; }
+.app-shell .prediction-gauge-track span { background: rgba(255,255,255,.2) !important; border-color: #d8eeee; }
+.app-shell .prediction-gauge-labels,
+.app-shell .prediction-gauge-labels strong { color: #9ebabb !important; }
+.app-shell .guided-view-controls button,
+.app-shell .finding-nav-buttons button {
+  border-color: rgba(119, 209, 206, .26) !important;
+  background: rgba(20, 55, 62, .9) !important;
+  color: #a9caca !important;
+}
+.app-shell .guided-view-controls button.active,
+.app-shell .guided-view-controls button:hover,
+.app-shell .finding-nav-buttons button:hover {
+  border-color: var(--nt-cyan) !important;
+  background: rgba(119, 209, 206, .16) !important;
+  color: var(--nt-cyan) !important;
+}
+.app-shell .finding-navigator {
+  border-color: rgba(119, 209, 206, .22) !important;
+  background: rgba(10, 39, 46, .88) !important;
+}
+.app-shell .finding-navigator h2 { color: var(--nt-ink) !important; }
+.app-shell .finding-navigator p,
+.app-shell .finding-navigator small,
+.app-shell .finding-nav-buttons span { color: var(--nt-muted) !important; }
+
+.spatial-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: .72;
+  mix-blend-mode: screen;
+}
+.spatial-backdrop canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+.dashboard-page > *:not(.spatial-backdrop),
+.app-shell > *:not(.spatial-backdrop),
+.live-demo-page > *:not(.spatial-backdrop) {
+  position: relative;
+  z-index: 1;
+}
+.dashboard-page > main,
+.app-shell > main,
+.live-demo-page > main {
+  isolation: isolate;
+}
+
+/* Floating spatial modules: depth, lift, and a restrained orbital motion. */
+.dashboard-hero-card,
+.dashboard-pipeline-card,
+.dashboard-metric,
+.dashboard-panel,
+.dashboard-visual-card,
+.dashboard-activity-card,
+.neuro-network-shell,
+.live-demo-hero,
+.live-demo-card,
+.brain-health-summary,
+.live-analysis-result-card,
+.live-analysis-report-card,
+.slice-viewer-card,
+.structure-panel,
+.analysis-panel,
+.model-summary {
+  transform: translateZ(0);
+  transition: transform .35s cubic-bezier(.2,.8,.2,1), border-color .35s ease, box-shadow .35s ease;
+  animation: spatial-card-in .65s both;
+}
+.dashboard-hero-card:hover,
+.dashboard-pipeline-card:hover,
+.dashboard-metric:hover,
+.dashboard-panel:hover,
+.dashboard-visual-card:hover,
+.dashboard-activity-card:hover,
+.neuro-network-shell:hover,
+.live-demo-hero:hover,
+.live-demo-card:hover,
+.brain-health-summary:hover,
+.live-analysis-result-card:hover,
+.live-analysis-report-card:hover,
+.slice-viewer-card:hover,
+.structure-panel:hover,
+.analysis-panel:hover,
+.model-summary:hover {
+  transform: translateY(-4px) rotateX(.35deg);
+  border-color: rgba(119, 209, 206, .42) !important;
+  box-shadow: 0 22px 55px rgba(0,0,0,.3), 0 0 24px rgba(119,209,206,.06) !important;
+}
+@keyframes spatial-card-in {
+  from { opacity: 0; transform: translateY(14px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.dashboard-metric:nth-child(2), .live-demo-card:nth-child(2), .live-analysis-result-card:nth-child(2) { animation-delay: .06s; }
+.dashboard-metric:nth-child(3), .live-demo-card:nth-child(3), .live-analysis-result-card:nth-child(3) { animation-delay: .12s; }
+.dashboard-metric:nth-child(4), .live-demo-card:nth-child(4), .live-analysis-result-card:nth-child(4) { animation-delay: .18s; }
+@media (prefers-reduced-motion: reduce) {
+  .spatial-backdrop { display: none; }
+  .dashboard-hero-card, .dashboard-pipeline-card, .dashboard-metric, .dashboard-panel,
+  .dashboard-visual-card, .dashboard-activity-card, .neuro-network-shell, .live-demo-hero,
+  .live-demo-card, .brain-health-summary, .live-analysis-result-card, .live-analysis-report-card,
+  .slice-viewer-card, .structure-panel, .analysis-panel, .model-summary { animation: none; transition: none; }
+}
+
+/* Keep the long-form analysis sections in normal document flow. */
+.app-shell .analysis-layout {
+  height: auto !important;
+  min-height: 720px;
+  margin-bottom: 28px;
+}
+.app-shell .brain-stage {
+  height: 720px;
+  min-height: 720px;
+}
+.app-shell .slice-viewer-card {
+  position: relative;
+  z-index: 2;
+  clear: both;
+  margin-top: 28px !important;
+}
+.app-shell .stage-info {
+  bottom: 72px !important;
+  z-index: 4;
+}
+.app-shell .viewer-controls {
+  z-index: 5;
+}
+@media (max-width: 1200px) {
+  .app-shell .analysis-layout {
+    min-height: 650px;
+  }
+  .app-shell .brain-stage {
+    height: 650px;
+    min-height: 650px;
+  }
+}
+/* Immersive anatomy canvas: the 3D brain is the page anchor and panels float over it. */
+@media (min-width: 801px) {
+  .app-shell .immersive-analysis {
+    position: relative;
+    display: grid;
+    grid-template-columns: 270px minmax(0, 1fr) 310px;
+    grid-template-rows: minmax(720px, calc(100vh - 132px));
+    gap: 0;
+    min-height: calc(100vh - 132px);
+    margin-top: 18px;
+    margin-bottom: 34px;
+  }
+  .app-shell .immersive-analysis .brain-stage {
+    position: sticky;
+    top: 16px;
+    grid-column: 1 / -1;
+    grid-row: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 720px;
+    border-radius: 24px;
+    box-shadow: 0 24px 70px rgba(0,0,0,.32), inset 0 0 80px rgba(119,209,206,.035);
+  }
+  .app-shell .immersive-analysis .structure-panel,
+  .app-shell .immersive-analysis .analysis-panel {
+    z-index: 6;
+    align-self: start;
+    width: auto;
+    margin: 18px;
+    backdrop-filter: blur(18px);
+    background: rgba(6, 25, 32, .78) !important;
+    box-shadow: 0 20px 50px rgba(0,0,0,.3) !important;
+  }
+  .app-shell .immersive-analysis .structure-panel {
+    grid-column: 1;
+    grid-row: 1;
+    max-height: calc(100% - 36px);
+  }
+  .app-shell .immersive-analysis .analysis-panel {
+    grid-column: 3;
+    grid-row: 1;
+    max-height: calc(100% - 36px);
+    overflow-y: auto;
+  }
+  .app-shell .immersive-analysis .brain-viewer {
+    min-height: 0;
+    height: 100%;
+    border: 0 !important;
+    border-radius: inherit;
+  }
+  .app-shell .immersive-analysis ~ .slice-viewer-card,
+  .app-shell .immersive-analysis ~ .live-analysis-result-card,
+  .app-shell .immersive-analysis ~ .live-analysis-report-card {
+    scroll-margin-top: 24px;
+  }
+  .app-shell .immersive-analysis .guided-view-controls {
+    left: 50%;
+    right: auto;
+    width: max-content;
+    max-width: calc(100% - 620px);
+    transform: translateX(-50%);
+    justify-content: center;
+    padding: 7px;
+    border: 1px solid rgba(119,209,206,.22);
+    border-radius: 12px;
+    background: rgba(5,22,28,.68);
+    backdrop-filter: blur(14px);
+  }
+  .app-shell .immersive-analysis .stage-info {
+    right: 50%;
+    bottom: 20px !important;
+    transform: translateX(50%);
+    border-color: rgba(119,209,206,.25) !important;
+    background: rgba(5,22,28,.78) !important;
+    backdrop-filter: blur(16px);
+  }
+}
+@media (max-width: 1100px) and (min-width: 801px) {
+  .app-shell .immersive-analysis {
+    grid-template-columns: 200px minmax(0, 1fr) 230px;
+  }
+  .app-shell .immersive-analysis .structure-panel,
+  .app-shell .immersive-analysis .analysis-panel {
+    margin: 12px;
+    font-size: 11px;
+  }
+  .app-shell .immersive-analysis .guided-view-controls {
+    max-width: calc(100% - 460px);
+  }
+}
+@media (max-width: 800px) {
+  .app-shell .analysis-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .app-shell .immersive-analysis .brain-stage {
+    position: relative;
+    min-height: 560px;
+    height: 560px;
+  }
+  .app-shell .brain-stage {
+    height: 560px;
+    min-height: 560px;
+  }
+  .app-shell .stage-info {
+    right: 12px;
+    bottom: 68px !important;
+    max-width: calc(100% - 24px);
+  }
+}
+
+.brain-viewer .label-card,
+.brain-viewer .region-label {
+  text-shadow: 0 1px 10px rgba(0,0,0,.4);
+}
+@media (max-width: 720px) {
+  .viewer-telemetry { top: 54px; right: 12px; }
+  .result-command-strip { align-items: flex-start; gap: 15px; }
+  .result-command-title { padding-right: 12px; }
+}

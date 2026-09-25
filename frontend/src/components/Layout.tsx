@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { useState } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { Brain, LayoutDashboard, FileText, BarChart3, Settings, Menu, X, ChevronLeft } from 'lucide-react'
 import { cn } from '../utils/helpers'

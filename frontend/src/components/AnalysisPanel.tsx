@@ -74,39 +74,38 @@ export default function AnalysisPanel({
           </div>
 
           <span className="eyebrow">
-            BRAIN OVERVIEW
+            SCAN OVERVIEW
           </span>
 
           <h2>
-            Explore the MRI
+            Read the scan
           </h2>
 
           <p>
-            Select an anatomical structure from the
-            atlas to inspect its MRI-derived
-            measurements.
+            Select a region from the atlas to inspect
+            measured volume, symmetry, and scan signals.
           </p>
 
           <div className="overview-grid">
 
             <OverviewStat
               value="132"
-              label="Anatomical labels"
+              label="Atlas labels"
             />
 
             <OverviewStat
               value="141"
-              label="Extracted features"
+              label="MRI features"
             />
 
             <OverviewStat
               value="1 mm"
-              label="MRI voxel size"
+              label="Voxel scale"
             />
 
             <OverviewStat
               value="T1"
-              label="MRI modality"
+              label="Scan modality"
             />
 
           </div>
@@ -144,7 +143,7 @@ export default function AnalysisPanel({
         <div>
 
           <span className="eyebrow">
-            SELECTED STRUCTURE
+            ACTIVE REGION
           </span>
 
           <h2>
@@ -168,7 +167,7 @@ export default function AnalysisPanel({
 
         <div className="measurement-heading">
           <Ruler size={16} />
-          MRI-derived volume
+          VOLUME SIGNAL
         </div>
 
         <div className="bilateral-grid">
@@ -206,7 +205,7 @@ export default function AnalysisPanel({
 
           <ArrowLeftRight size={15} />
 
-          Bilateral asymmetry
+          LEFT / RIGHT BALANCE
 
         </div>
 

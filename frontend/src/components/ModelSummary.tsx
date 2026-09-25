@@ -2,6 +2,7 @@ import {
   BrainCircuit,
   ChevronRight,
   LockKeyhole,
+  Sparkles,
 } from "lucide-react";
 
 interface ModelSummaryProps {
@@ -35,10 +36,17 @@ export default function ModelSummary({
         </div>
       </div>
 
+      <div className="model-signal">
+        <Sparkles size={14} />
+        <span>NeuroTrace inference layer</span>
+        <i />
+        <strong>{modelReady ? "ONLINE" : "STANDBY"}</strong>
+      </div>
+
       <div className="model-content">
         <div className="prediction-box">
           <span className="metric-label">
-            MODEL PREDICTION
+            CLASSIFIER OUTPUT
           </span>
 
           <div className="prediction-placeholder">
@@ -62,7 +70,7 @@ export default function ModelSummary({
 
         <div className="explanation-box">
           <span className="metric-label">
-            MODEL EXPLANATION
+            SIGNAL EXPLANATION
           </span>
 
           <div className="explanation-placeholder">
