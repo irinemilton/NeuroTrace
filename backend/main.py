@@ -4,10 +4,11 @@ import json
 
 import joblib
 import pandas as pd
+import httpx
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.features.measurements import measure_subject
 from backend.config import settings
@@ -244,6 +245,41 @@ app.include_router(live_demo_router, prefix="/api")
 class AnalysisRequest(BaseModel):
 
     subject_id: str
+
+
+class CaretakerChatRequest(BaseModel):
+    messages: list[dict[str, str]] = Field(default_factory=list, max_length=20)
+
+
+@app.post("/api/caretaker/chat")
+async def caretaker_chat(request: CaretakerChatRequest):
+    if not settings.OPENROUTER_API_KEY:
+        raise HTTPException(status_code=503, detail="OPENROUTER_API_KEY is not configured.")
+
+    messages = [{"role": "system", "content": (
+        "You are NeuroTrace Care Assistant. Give calm, concise, practical caregiver support. "
+        "Do not diagnose, change medications, or replace clinicians. For emergencies, advise contacting "
+        "local emergency services immediately. Use only information provided in the conversation."
+    )}]
+    messages.extend(request.messages[-20:])
+    payload = {"model": settings.OPENROUTER_MODEL, "messages": messages, "temperature": 0.3}
+    headers = {
+        "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": settings.OPENROUTER_SITE_URL,
+        "X-Title": settings.OPENROUTER_SITE_NAME,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=45) as client:
+            response = await client.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers)
+        response.raise_for_status()
+        content = response.json()["choices"][0]["message"]["content"]
+        return {"message": content}
+    except httpx.HTTPStatusError as exc:
+        detail = exc.response.text[:300] or "OpenRouter request failed."
+        raise HTTPException(status_code=502, detail=detail) from exc
+    except (httpx.HTTPError, KeyError, IndexError, TypeError) as exc:
+        raise HTTPException(status_code=502, detail="Could not get a response from the care assistant.") from exc
 
 
 # ============================================================

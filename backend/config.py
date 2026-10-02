@@ -32,6 +32,10 @@ class Settings(BaseSettings):
 
     MAX_UPLOAD_SIZE: int = 500 * 1024 * 1024
     ALLOWED_EXTENSIONS: set = {".nii", ".nii.gz", ".gz"}
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_MODEL: str = "openai/gpt-4o-mini"
+    OPENROUTER_SITE_URL: str = "http://localhost:3000"
+    OPENROUTER_SITE_NAME: str = "NeuroTrace"
 
     class Config:
         case_sensitive = True

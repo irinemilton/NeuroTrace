@@ -112,6 +112,13 @@ export default function BrainAnalysis() {
   const [showLabels, setShowLabels] =
     useState(false);
 
+  const clinicalValue = (key: string) => {
+    const value = subject?.clinical_data?.[key];
+    return value === null || value === undefined || value === "" ? null : value;
+  };
+
+  const displayValue = (value: unknown) => value === null || value === undefined ? "N/A" : String(value);
+
 
   /* ==========================================================
      FIND INITIAL SUBJECT
@@ -1283,7 +1290,7 @@ export default function BrainAnalysis() {
       ====================================================== */}
 
       <section
-        className="model-summary"
+        className="model-summary progression-forecast-shell"
         style={{
           marginTop: "12px",
         }}
@@ -1308,35 +1315,51 @@ export default function BrainAnalysis() {
           </div>
         </div>
 
-        {progression && (
-          <div className="progression-timeline">
-            <div className="progression-timeline-track" aria-hidden="true">
-              <span className="progression-timeline-line" />
-              {(["12M", "24M", "36M"] as const).map((horizon) => {
-                const hData = progression.horizons[horizon];
-                if (!hData) return null;
-                const percent = Math.round(hData.progression_probability * 100);
-                return (
-                  <div className="progression-timeline-point" key={horizon}>
-                    <span className={`progression-timeline-node ${hData.risk_label === "High" ? "high" : "low"}`} />
-                    <span className="progression-timeline-label">{horizon}</span>
-                    <strong>{percent}%</strong>
-                    <small>{hData.risk_label} risk</small>
-                  </div>
-                );
-              })}
+        {
+          <>
+          <div className="forecast-baseline-grid">
+            <div className="forecast-baseline-card">
+              <span className="eyebrow">BASELINE / ACTUAL</span>
+              <h3>Current measurements</h3>
+              <div className="forecast-metric-list">
+                <div><span>Clinical stage</span><strong>{displayValue(clinicalValue("Diagnostico"))}</strong></div>
+                <div><span>Actual CDR-SB</span><strong>N/A</strong></div>
+                <div><span>Actual MMSE</span><strong>{displayValue(clinicalValue("MMSE"))}</strong></div>
+              </div>
             </div>
-            <div className="progression-timeline-summary">
-              <span className="eyebrow">ESTIMATED PROGRESSION RISK</span>
-              <strong>
-                {progression.horizons["36M"]
-                  ? `${Math.round(progression.horizons["36M"].progression_probability * 100)}% by 36 months`
-                  : "Longitudinal estimate unavailable"}
-              </strong>
-              <p>Each point is a separate horizon model prediction based on the available MRI and clinical features.</p>
+            <div className="forecast-baseline-card">
+              <span className="eyebrow">PROGRESSION VELOCITY</span>
+              <h3>{"N/A"} <small>status</small></h3>
+              <div className="forecast-metric-list">
+                <div><span>CDR-SB velocity</span><strong>N/A</strong></div>
+                <div><span>MMSE decline</span><strong>N/A</strong></div>
+                <div><span>Hippocampal atrophy</span><strong>N/A</strong></div>
+              </div>
+              <p className="forecast-note">Longitudinal measurements are not available in the current patient data.</p>
             </div>
           </div>
-        )}
+          <div className="forecast-cards">
+            {(["12M", "24M", "36M"] as const).map((horizon) => {
+              const hData = progression?.horizons[horizon];
+              const percent = hData ? Math.round(hData.progression_probability * 100) : null;
+              return <article className="forecast-card" key={horizon}>
+                <div className="forecast-card-heading"><div><span className="eyebrow">FORECAST</span><h3>{horizon.replace("M", " Months")}</h3></div><strong className={hData?.risk_label === "High" ? "forecast-risk high" : "forecast-risk"}>{percent === null ? "N/A" : `${percent}%`}</strong></div>
+                <div className="forecast-progress"><span style={{ width: `${percent ?? 0}%` }} /></div>
+                <div className="forecast-metric-list">
+                  <div><span>Estimated stage</span><strong>{hData ? `${hData.risk_label} risk` : "N/A"}</strong></div>
+                  <div><span>Progression / AD risk</span><strong>{percent === null ? "N/A" : `${percent}%`}</strong></div>
+                  <div><span>Predicted CDR-SB</span><strong>N/A</strong></div>
+                  <div><span>95% CI for CDR-SB</span><strong>N/A</strong></div>
+                  <div><span>Predicted MMSE</span><strong>N/A</strong></div>
+                  <div><span>95% CI for MMSE</span><strong>N/A</strong></div>
+                  <div><span>CDR-SB margin of error</span><strong>N/A</strong></div>
+                </div>
+              </article>;
+            })}
+          </div>
+          {!progression && <div className="forecast-unavailable">{progressionLoading ? "Loading progression model outputs..." : progressionError ?? "Progression model outputs are unavailable."}</div>}
+          </>
+        }
 
         {!progression && (
           <div

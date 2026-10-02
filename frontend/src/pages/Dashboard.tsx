@@ -73,12 +73,14 @@ export function Dashboard() {
     return () => clearInterval(timer);
   }, [project?.segmentation_running, loadData]);
 
+
   const total = project?.total_mri_subjects ?? 0;
   const completed = project?.segmented_subjects ?? 0;
   const remaining = Math.max(total - completed, 0);
 
   const progress =
     total > 0 ? Math.round((completed / total) * 100) : 0;
+
 
   if (loading) {
     return (

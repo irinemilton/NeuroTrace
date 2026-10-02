@@ -415,6 +415,25 @@ export default function LiveDemoResult() {
         </div>
       </section>
 
+      <section className="dashboard-forecast-card live-result-forecast">
+        <div className="dashboard-forecast-heading">
+          <div><div className="dashboard-eyebrow">Longitudinal outlook</div><h2>Multi-horizon forecast</h2><p>Forecast models are not part of this live analysis session.</p></div>
+        </div>
+        <div className="dashboard-baseline-row">
+          <div><span>Current classification</span><strong>{prediction.classification}</strong></div>
+          <div><span>Current AD risk</span><strong>{(prediction.probability_ad * 100).toFixed(1)}%</strong></div>
+          <div><span>Actual CDR-SB</span><strong>N/A</strong></div>
+          <div><span>Velocity</span><strong>N/A</strong></div>
+        </div>
+        <div className="dashboard-forecast-grid">
+          {(["12M", "24M", "36M"] as const).map((horizon) => <article className="dashboard-forecast-item" key={horizon}>
+            <div className="dashboard-forecast-item-head"><strong>{horizon.replace("M", " Months")}</strong><b>N/A</b></div>
+            <div className="dashboard-forecast-track"><i style={{ width: 0 }} /></div>
+            <div className="dashboard-forecast-values"><span>Estimated stage <b>N/A</b></span><span>CDR-SB / MMSE <b>N/A</b></span><span>95% CI <b>N/A</b></span></div>
+          </article>)}
+        </div>
+      </section>
+
       {/* ===================================================
           MAIN ANALYSIS LAYOUT
           =================================================== */}
