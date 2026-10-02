@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 function ParticleField() {
@@ -55,13 +55,22 @@ function OrbitCore() {
 }
 
 export default function SpatialBackdrop() {
+  const [webGLAvailable] = useState(() => {
+    try {
+      const canvas = document.createElement("canvas");
+      return Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl"));
+    } catch {
+      return false;
+    }
+  });
+
   return (
     <div className="spatial-backdrop" aria-hidden="true">
-      <Canvas camera={{ position: [0, 0, 6], fov: 45 }} dpr={[1, 1.25]} gl={{ antialias: true, alpha: true }}>
-        <ParticleField />
-        <OrbitCore />
-        <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
-      </Canvas>
+      {webGLAvailable && <Canvas camera={{ position: [0, 0, 6], fov: 45 }} dpr={[1, 1.25]} gl={{ antialias: true, alpha: true }}>
+          <ParticleField />
+          <OrbitCore />
+          <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
+        </Canvas>}
     </div>
   );
 }

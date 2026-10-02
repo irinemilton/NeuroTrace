@@ -2332,6 +2332,20 @@ button {
   content: "";
   mask-image: linear-gradient(to bottom, transparent, #000 20%, #000 80%, transparent);
 }
+.webgl-fallback {
+  display: flex;
+  height: 100%;
+  min-height: 280px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  color: #8b969f;
+  text-align: center;
+}
+.webgl-fallback strong { color: #b7c5cb; font-size: 12px; }
+.webgl-fallback span { max-width: 280px; font-size: 10px; }
 .slice-viewer-card { margin-top: 18px !important; }
 .slice-viewer-header label { color: var(--nt-muted) !important; }
 

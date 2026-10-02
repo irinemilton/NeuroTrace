@@ -38,6 +38,20 @@ const MODEL_PATH =
 
 const TARGET_BRAIN_SIZE = 2.5;
 
+function supportsWebGL() {
+  if (typeof document === "undefined") return false;
+  try {
+    const canvas = document.createElement("canvas");
+    return Boolean(
+      canvas.getContext("webgl2") ||
+      canvas.getContext("webgl") ||
+      canvas.getContext("experimental-webgl"),
+    );
+  } catch {
+    return false;
+  }
+}
+
 
 /* =========================================================
    ERROR BOUNDARY
@@ -1206,6 +1220,7 @@ export default function BrainViewer(
   const [regionColor, setRegionColor] = useState("#67aeb5");
   const [resetToken, setResetToken] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [webGLAvailable] = useState(supportsWebGL);
   const controlsRef = useRef<any>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
 
@@ -1225,7 +1240,7 @@ export default function BrainViewer(
       ref={viewerRef}
     >
 
-      <WebGLErrorBoundary>
+      {webGLAvailable ? <WebGLErrorBoundary>
         <Canvas
           camera={{
             position: [
@@ -1264,7 +1279,10 @@ export default function BrainViewer(
           />
 
         </Canvas>
-      </WebGLErrorBoundary>
+      </WebGLErrorBoundary> : <div className="webgl-fallback">
+        <strong>3D Viewer Unavailable</strong>
+        <span>Your browser or environment does not support WebGL hardware acceleration.</span>
+      </div>}
 
 
       {/* =============================================
