@@ -387,6 +387,7 @@ export interface PatientWorkspace { role: "patient"; patient_name: string; strea
 export interface CaretakerWorkspace { role: "caretaker"; patient_name: string; medications: Array<{ id: number; time: string; title: string; detail: string; status: string }>; contacts: Array<{ id: number; kind: string; name: string; detail: string; phone?: string }>; safety: { status: string; message: string }; next_review: string; }
 export async function getPatientWorkspace() { return (await api.get<PatientWorkspace>("/care/patient")).data; }
 export async function recordGameResult(game: string, score: number, total: number) { return (await api.post("/care/patient/games", { game, score, total })).data; }
+export async function completeRoutineItem(itemId: number) { return (await api.post(`/care/patient/routine/${itemId}/complete`)).data; }
 export async function getCaretakerWorkspace() { return (await api.get<CaretakerWorkspace>("/care/caretaker")).data; }
 
 

@@ -68,6 +68,13 @@ class GameResult(BaseModel):
     total: int = Field(gt=0)
 
 
+class ContactInput(BaseModel):
+    kind: str = Field(min_length=1, max_length=30)
+    name: str = Field(min_length=2, max_length=100)
+    detail: str = Field(min_length=2, max_length=160)
+    phone: str = Field(min_length=7, max_length=30)
+
+
 def rows(query: str) -> list[dict[str, Any]]:
     with connect() as db:
         return [dict(row) for row in db.execute(query).fetchall()]
@@ -77,9 +84,14 @@ def rows(query: str) -> list[dict[str, Any]]:
 def patient_workspace() -> dict[str, Any]:
     routine = rows("SELECT id,time,icon,title,detail,completed FROM routine_items ORDER BY time")
     results = rows("SELECT game,score,total,completed_at FROM game_results ORDER BY id DESC LIMIT 20")
+    completed_routine = sum(item["completed"] for item in routine)
+    completed_games = len(results)
+    completed_brain = sum(1 for item in routine if item["completed"] and item["title"] in {"Object Recall", "Pattern Match"})
+    completed_movement = sum(1 for item in routine if item["completed"] and item["title"] == "Gentle walk")
     return {"role": "patient", "patient_name": "Margaret", "streak_days": 4,
             "routine": routine, "game_results": results,
-            "weekly_summary": {"brain_activities": 5, "games": 8, "movement": 4, "routine_days": 6}}
+            "weekly_summary": {"brain_activities": completed_brain, "games": completed_games,
+                               "movement": completed_movement, "routine_days": completed_routine}}
 
 
 @router.post("/patient/games", status_code=201)
@@ -107,6 +119,16 @@ def caretaker_workspace() -> dict[str, Any]:
             "contacts": rows("SELECT id,kind,name,detail,phone FROM contacts ORDER BY kind"),
             "safety": {"status": "clear", "message": "No new safety concerns reported."},
             "next_review": "Thursday, October 3 at 10:00 with Dr. Marquez"}
+
+
+@router.post("/caretaker/contacts", status_code=201)
+def add_contact(contact: ContactInput) -> dict[str, Any]:
+    phone = "".join(character for character in contact.phone if character.isdigit() or character == "+")
+    if len(phone.replace("+", "")) < 7:
+        raise HTTPException(status_code=422, detail="Enter a valid mobile number.")
+    with connect() as db:
+        cursor = db.execute("INSERT INTO contacts(kind,name,detail,phone) VALUES (?,?,?,?)", (contact.kind, contact.name, contact.detail, phone))
+        return {"id": cursor.lastrowid, **contact.model_dump(), "phone": phone}
 
 
 @router.post("/caretaker/medications/{medication_id}/follow-up")

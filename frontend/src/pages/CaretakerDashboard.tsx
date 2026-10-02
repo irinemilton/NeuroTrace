@@ -1,12 +1,50 @@
-import { AlertTriangle, Bell, CalendarCheck, CheckCircle2, ChevronRight, HeartHandshake, Phone, ShieldCheck, UserRound } from "lucide-react";
-import RoleSwitcher from "../components/RoleSwitcher";
 import { useEffect, useState } from "react";
-import { getCaretakerWorkspace } from "../api/client";
+import type { FormEvent } from "react";
+import { AlertTriangle, Bell, CalendarCheck, CheckCircle2, ChevronRight, HeartHandshake, Phone, Plus, ShieldCheck, UserRound, X } from "lucide-react";
+import RoleSwitcher from "../components/RoleSwitcher";
+import { api, getCaretakerWorkspace, type CaretakerWorkspace } from "../api/client";
 
 export default function CaretakerDashboard() {
-  const [backendConnected, setBackendConnected] = useState(false);
-  useEffect(() => {
-    getCaretakerWorkspace().then(() => setBackendConnected(true)).catch(() => setBackendConnected(false));
-  }, []);
-  return <div className="wellbeing-page caretaker-page"><header className="wellbeing-header"><div className="wellbeing-brand"><div className="wellbeing-brand-mark caretaker-mark"><HeartHandshake /></div><div><strong>NeuroTrace</strong><span>Caretaker space</span></div></div><RoleSwitcher role="caretaker" /></header><main className="wellbeing-content"><section className="wellbeing-welcome"><div><span className="wellbeing-eyebrow">CARETAKER DASHBOARD</span><h1>Supporting Margaret, together.</h1><p>Stay close to the daily details that help care feel calm and consistent.</p></div><div className="connected-chip"><span /> Patient connected</div></section><section className="caretaker-grid"><article className="wellbeing-card medication-card"><div className="card-heading"><div><span className="wellbeing-eyebrow">MEDICATION FOLLOW-UP</span><h2>Today's medicines</h2></div><Bell /></div><div className="medication-row"><div className="medication-time">08:00</div><div><strong>Morning medication</strong><p>Done at 08:14</p></div><CheckCircle2 className="done-icon" /></div><div className="medication-row pending"><div className="medication-time">20:00</div><div><strong>Evening medication</strong><p>Reminder scheduled</p></div><button className="small-action">Mark follow-up</button></div></article><article className="wellbeing-card safety-card"><div className="card-heading"><div><span className="wellbeing-eyebrow">PRECAUTIONS &amp; SAFETY</span><h2>Safety check</h2></div><ShieldCheck /></div><div className="safety-status"><ShieldCheck /><div><strong>All clear today</strong><p>No new safety concerns reported.</p></div></div><button className="text-action">Review safety guidance <ChevronRight /></button></article><article className="wellbeing-card contact-card"><div className="card-heading"><div><span className="wellbeing-eyebrow">DOCTOR CONTACT</span><h2>Care team</h2></div><UserRound /></div><div className="doctor-person"><div className="avatar">DR</div><div><strong>Dr. Elena Marquez</strong><p>Neurology care team</p></div><button className="circle-action" aria-label="Call doctor"><Phone /></button></div><button className="wellbeing-button light">Message care team</button></article><article className="wellbeing-card emergency-card"><div className="card-heading"><div><span className="wellbeing-eyebrow">SUPPORT / EMERGENCY CONTACTS</span><h2>Help when you need it</h2></div><AlertTriangle /></div><p>Keep trusted contacts close and know who to call in an urgent situation.</p><div className="emergency-actions"><button className="emergency-button"><Phone /> Emergency services <strong>112</strong></button><button className="support-button"><Phone /> Family contact <strong>Call</strong></button></div></article></section><section className="care-note"><CalendarCheck /><div><strong>Next care review</strong><span>Thursday, October 3 at 10:00 with Dr. Marquez</span></div></section></main></div>;
+  const [workspace, setWorkspace] = useState<CaretakerWorkspace | null>(null);
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [contactError, setContactError] = useState("");
+  const [savingContact, setSavingContact] = useState(false);
+  const [contact, setContact] = useState({ name: "", phone: "", detail: "Family support", kind: "family" });
+
+  useEffect(() => { getCaretakerWorkspace().then(setWorkspace).catch(() => setWorkspace(null)); }, []);
+  const followUp = async (id: number) => {
+    await api.post(`/care/caretaker/medications/${id}/follow-up`);
+    setWorkspace((current) => current ? { ...current, medications: current.medications.map((item) => item.id === id ? { ...item, status: "follow_up", detail: "Follow-up requested" } : item) } : current);
+  };
+  const addContact = async (event: FormEvent) => {
+    event.preventDefault();
+    setContactError("");
+    setSavingContact(true);
+    try {
+      const response = await api.post("/care/caretaker/contacts", contact);
+      setWorkspace((current) => current ? { ...current, contacts: [...current.contacts, response.data] } : current);
+      setContact({ name: "", phone: "", detail: "Family support", kind: "family" });
+      setShowContactForm(false);
+    } catch (error: any) {
+      setContactError(error?.response?.data?.detail ?? "Could not save contact. Restart the backend and try again.");
+    } finally {
+      setSavingContact(false);
+    }
+  };
+  const doctor = workspace?.contacts.find((item) => item.kind === "doctor");
+  const family = workspace?.contacts.find((item) => item.kind === "family");
+  const whatsappLink = (phone?: string) => phone ? `https://wa.me/${phone.replace(/\D/g, "")}` : undefined;
+  return <div className="wellbeing-page caretaker-page">
+    <header className="wellbeing-header"><div className="wellbeing-brand"><div className="wellbeing-brand-mark caretaker-mark"><HeartHandshake /></div><div><strong>NeuroTrace</strong><span>Caretaker space</span></div></div><RoleSwitcher role="caretaker" /></header>
+    <main className="wellbeing-content">
+      <section className="wellbeing-welcome"><div><span className="wellbeing-eyebrow">CARETAKER DASHBOARD</span><h1>Supporting Margaret, together.</h1><p>Stay close to the daily details that help care feel calm and consistent.</p></div><div className="connected-chip"><span /> {workspace ? "Patient connected" : "Connecting..."}</div></section>
+      <section className="caretaker-grid">
+        <article className="wellbeing-card medication-card"><div className="card-heading"><div><span className="wellbeing-eyebrow">MEDICATION FOLLOW-UP</span><h2>Today's medicines</h2></div><Bell /></div>{workspace?.medications.map((item) => <div className="medication-row" key={item.id}><div className="medication-time">{item.time}</div><div><strong>{item.title}</strong><p>{item.detail}</p></div>{item.status === "done" ? <CheckCircle2 className="done-icon" /> : <button className="small-action" onClick={() => void followUp(item.id)}>Mark follow-up</button>}</div>)}</article>
+        <article className="wellbeing-card safety-card"><div className="card-heading"><div><span className="wellbeing-eyebrow">PRECAUTIONS &amp; SAFETY</span><h2>Safety check</h2></div><ShieldCheck /></div><div className="safety-status"><ShieldCheck /><div><strong>{workspace?.safety.status === "clear" ? "All clear today" : "Review needed"}</strong><p>{workspace?.safety.message ?? "Loading safety status..."}</p></div></div><button className="text-action">Review safety guidance <ChevronRight /></button></article>
+        <article className="wellbeing-card contact-card"><div className="card-heading"><div><span className="wellbeing-eyebrow">DOCTOR CONTACT</span><h2>Care team</h2></div><UserRound /></div><div className="doctor-person"><div className="avatar">DR</div><div><strong>{doctor?.name ?? "Care team"}</strong><p>{doctor?.detail ?? "Contact unavailable"}</p></div>{doctor?.phone && <a className="circle-action" href={`tel:${doctor.phone}`} aria-label="Call doctor"><Phone /></a>}</div><a className="wellbeing-button light" href={doctor?.phone ? `sms:${doctor.phone}` : undefined}>Message care team</a></article>
+        <article className="wellbeing-card emergency-card"><div className="card-heading"><div><span className="wellbeing-eyebrow">SUPPORT / EMERGENCY CONTACTS</span><h2>Help when you need it</h2></div><AlertTriangle /></div><p>Save trusted mobile numbers so calls can be placed directly from this dashboard.</p><div className="emergency-actions"><a className="emergency-button" href="tel:112"><Phone /> Emergency services <strong>112</strong></a>{family?.phone && <a className="support-button" href={whatsappLink(family.phone)}><Phone /> WhatsApp {family.name} <strong>Call</strong></a>}<button className="support-button" onClick={() => { setContactError(""); setShowContactForm(true); }}><Plus /> Add contact</button></div>{showContactForm && <form className="contact-form" onSubmit={(event) => void addContact(event)}><div className="contact-form-header"><strong>Add support contact</strong><button type="button" onClick={() => setShowContactForm(false)}><X /></button></div><input required placeholder="Name" value={contact.name} onChange={(event) => setContact({ ...contact, name: event.target.value })} /><input required placeholder="Mobile number" type="tel" value={contact.phone} onChange={(event) => setContact({ ...contact, phone: event.target.value })} /><input required placeholder="Relationship or detail" value={contact.detail} onChange={(event) => setContact({ ...contact, detail: event.target.value })} />{contactError && <div className="contact-error">{contactError}</div>}<button className="wellbeing-button" type="submit" disabled={savingContact}>{savingContact ? "Saving..." : "Save contact"}</button></form>}</article>
+      </section>
+      <section className="care-note"><CalendarCheck /><div><strong>Next care review</strong><span>{workspace?.next_review ?? "Loading review schedule..."}</span></div></section>
+    </main>
+  </div>;
 }
