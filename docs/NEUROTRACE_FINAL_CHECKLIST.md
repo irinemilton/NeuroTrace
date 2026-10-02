@@ -14,6 +14,32 @@
 - [x] Evaluation metrics documented
 - [ ] Verify SHAP on multiple subjects
 
+### Longitudinal progression training
+
+Progression models must be trained from real follow-up outcomes. The current
+repository contains baseline clinical records and MRI features, but no
+12-, 24-, or 36-month outcome labels, so the training command intentionally
+stops until those labels are supplied.
+
+```powershell
+python -m src.ml.build_progression_dataset `
+  --outcomes data/raw/Clinical_data/longitudinal_outcomes.csv
+python -m src.ml.train_progression
+```
+
+The outcome file must contain `Subject_ID` plus one target for each horizon:
+`outcome_12M`, `outcome_24M`, and `outcome_36M` (binary or categorical).
+The builder combines these labels with the 141 MRI features and available
+baseline clinical fields. Models are written to `models/progression`.
+
+For inference:
+
+```powershell
+python -m src.ml.predict_progression `
+  --features data/processed/brain_features.csv `
+  --output data/processed/progression_predictions.csv
+```
+
 ## UI / Cleanup
 - [x] Redundant ModelSummary removed from Live Result
 - [x] Old live GLBs archived

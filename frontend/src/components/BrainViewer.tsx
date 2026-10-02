@@ -7,12 +7,15 @@ import {
 
 import { Canvas } from "@react-three/fiber";
 
-import {
+import React, {
   Suspense,
   useEffect,
   useMemo,
   useRef,
   useState,
+  Component,
+  ErrorInfo,
+  ReactNode,
 } from "react";
 import { Crosshair, Maximize2, RotateCcw, ScanLine } from "lucide-react";
 
@@ -35,6 +38,38 @@ const MODEL_PATH =
 
 const TARGET_BRAIN_SIZE = 2.5;
 
+
+/* =========================================================
+   ERROR BOUNDARY
+   ========================================================= */
+
+class WebGLErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean}> {
+  constructor(props: {children: ReactNode}) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(_: Error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.warn("WebGL could not be initialized:", error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#8b969f', textAlign: 'center', padding: '20px', background: 'rgba(0,0,0,0.1)' }}>
+          <div style={{ fontSize: '24px', marginBottom: '10px' }}>⚠️</div>
+          <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#52616d' }}>3D Viewer Unavailable</div>
+          <div style={{ fontSize: '10px', marginTop: '6px', maxWidth: '250px' }}>Your browser or environment does not support WebGL hardware acceleration, which is required to render the 3D brain model.</div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 /* =========================================================
    TYPES
@@ -1190,44 +1225,46 @@ export default function BrainViewer(
       ref={viewerRef}
     >
 
-      <Canvas
-        camera={{
-          position: [
-            0,
-            0,
-            3.5,
-          ],
+      <WebGLErrorBoundary>
+        <Canvas
+          camera={{
+            position: [
+              0,
+              0,
+              3.5,
+            ],
 
-          fov: 40,
+            fov: 40,
 
-          near: 0.01,
+            near: 0.01,
 
-          far: 100,
-        }}
+            far: 100,
+          }}
 
-        dpr={[
-          1,
-          1.5,
-        ]}
+          dpr={[
+            1,
+            1.5,
+          ]}
 
-        gl={{
-          antialias: true,
+          gl={{
+            antialias: true,
 
-          powerPreference:
-            "high-performance",
-        }}
-      >
+            powerPreference:
+              "high-performance",
+          }}
+        >
 
-        <Scene
-          {...props}
-          opacity={opacity}
-          surfaceColor={surfaceColor}
-          regionColor={regionColor}
-          resetToken={resetToken}
-          controlsRef={controlsRef}
-        />
+          <Scene
+            {...props}
+            opacity={opacity}
+            surfaceColor={surfaceColor}
+            regionColor={regionColor}
+            resetToken={resetToken}
+            controlsRef={controlsRef}
+          />
 
-      </Canvas>
+        </Canvas>
+      </WebGLErrorBoundary>
 
 
       {/* =============================================

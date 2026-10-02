@@ -34,6 +34,8 @@ import {
   type SubjectMeasurementsResponse,
   type AnalysisResult,
   type ExplanationResult,
+  getSubjectProgression,
+  type ProgressionResult,
 } from "../api/client";
 
 
@@ -71,6 +73,9 @@ export default function BrainAnalysis() {
   const [explanation, setExplanation] =
     useState<ExplanationResult | null>(null);
 
+  const [progression, setProgression] =
+    useState<ProgressionResult | null>(null);
+
   const [loading, setLoading] =
     useState(true);
 
@@ -80,6 +85,9 @@ export default function BrainAnalysis() {
   const [explanationLoading, setExplanationLoading] =
     useState(false);
 
+  const [progressionLoading, setProgressionLoading] =
+    useState(false);
+
   const [error, setError] =
     useState<string | null>(null);
 
@@ -87,6 +95,9 @@ export default function BrainAnalysis() {
     useState<string | null>(null);
 
   const [explanationError, setExplanationError] =
+    useState<string | null>(null);
+
+  const [progressionError, setProgressionError] =
     useState<string | null>(null);
 
   const [selectedRegion, setSelectedRegion] =
@@ -231,9 +242,13 @@ export default function BrainAnalysis() {
 
       setExplanation(null);
 
+      setProgression(null);
+
       setAnalysisError(null);
 
       setExplanationError(null);
+
+      setProgressionError(null);
 
 
       try {
@@ -481,6 +496,79 @@ export default function BrainAnalysis() {
     }
 
     loadExplanation();
+
+    return () => {
+      cancelled = true;
+    };
+
+  }, [
+    routeSubjectId,
+    predictionAvailable,
+  ]);
+
+
+  /* ==========================================================
+     LOAD PROGRESSION
+  ========================================================== */
+
+  useEffect(() => {
+
+    if (
+      !routeSubjectId ||
+      !predictionAvailable
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadProgression() {
+
+      setProgressionLoading(true);
+
+      setProgressionError(null);
+
+      try {
+
+        const result =
+          await getSubjectProgression(
+            routeSubjectId,
+          );
+
+        if (cancelled) {
+          return;
+        }
+
+        setProgression(result);
+
+      } catch (err) {
+
+        console.error(
+          "Failed to load progression:",
+          err,
+        );
+
+        if (!cancelled) {
+
+          setProgression(null);
+
+          setProgressionError(
+            "Progression analysis is currently unavailable.",
+          );
+
+        }
+
+      } finally {
+
+        if (!cancelled) {
+          setProgressionLoading(false);
+        }
+
+      }
+
+    }
+
+    loadProgression();
 
     return () => {
       cancelled = true;
@@ -1187,6 +1275,86 @@ export default function BrainAnalysis() {
           not causal or clinical conclusions.
         </div>
 
+      </section>
+
+
+      {/* ======================================================
+          PROGRESSION ANALYSIS
+      ====================================================== */}
+
+      <section
+        className="model-summary"
+        style={{
+          marginTop: "12px",
+        }}
+      >
+        <div className="model-header">
+          <div>
+            <span className="eyebrow">
+              LONGITUDINAL PREDICTION
+            </span>
+            <h2>
+              Progression Trajectory
+            </h2>
+          </div>
+
+          <div className="model-status">
+            <span
+              className={`status-dot ${
+                progression ? "ready" : "waiting"
+              }`}
+            />
+            {progression ? "TRAJECTORY READY" : "PENDING"}
+          </div>
+        </div>
+
+        {progression && (
+          <div className="progression-timeline">
+            <div className="progression-timeline-track" aria-hidden="true">
+              <span className="progression-timeline-line" />
+              {(["12M", "24M", "36M"] as const).map((horizon) => {
+                const hData = progression.horizons[horizon];
+                if (!hData) return null;
+                const percent = Math.round(hData.progression_probability * 100);
+                return (
+                  <div className="progression-timeline-point" key={horizon}>
+                    <span className={`progression-timeline-node ${hData.risk_label === "High" ? "high" : "low"}`} />
+                    <span className="progression-timeline-label">{horizon}</span>
+                    <strong>{percent}%</strong>
+                    <small>{hData.risk_label} risk</small>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="progression-timeline-summary">
+              <span className="eyebrow">ESTIMATED PROGRESSION RISK</span>
+              <strong>
+                {progression.horizons["36M"]
+                  ? `${Math.round(progression.horizons["36M"].progression_probability * 100)}% by 36 months`
+                  : "Longitudinal estimate unavailable"}
+              </strong>
+              <p>Each point is a separate horizon model prediction based on the available MRI and clinical features.</p>
+            </div>
+          </div>
+        )}
+
+        {!progression && (
+          <div
+            style={{
+              marginTop: "14px",
+              padding: "12px",
+              border: "1px solid #e6eaed",
+              borderRadius: "11px",
+              background: "#fafbfc",
+              color: "#8b969f",
+              fontSize: "10px",
+            }}
+          >
+            {progressionLoading
+              ? "Running longitudinal progression models..."
+              : progressionError ?? "Progression models are not available yet."}
+          </div>
+        )}
       </section>
 
 

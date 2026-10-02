@@ -207,6 +207,30 @@ export interface ExplanationResult {
 
 
 /* ============================================================
+   PROGRESSION ML
+============================================================ */
+
+export interface ProgressionHorizon {
+  progression_probability: number;
+  progression_class: number;
+  risk_label: "High" | "Low";
+  error?: string;
+}
+
+export interface ProgressionResult {
+  subject_id: string;
+  progression_available: boolean;
+  horizons: {
+    "12M"?: ProgressionHorizon;
+    "24M"?: ProgressionHorizon;
+    "36M"?: ProgressionHorizon;
+  };
+  model_type: string;
+  features_used: number;
+  clinical_merged: boolean;
+}
+
+/* ============================================================
    HEALTH
 ============================================================ */
 
@@ -341,6 +365,29 @@ export async function getSubjectExplanation(
 
   return response.data;
 }
+
+
+/* ============================================================
+   PROGRESSION ANALYSIS
+============================================================ */
+
+export async function getSubjectProgression(
+  subjectId: string,
+): Promise<ProgressionResult> {
+  const response =
+    await api.get<ProgressionResult>(
+      `/subjects/${encodeURIComponent(subjectId)}/progression`,
+    );
+
+  return response.data;
+}
+
+export interface CareRoutineItem { id: number; time: string; icon: string; title: string; detail: string; completed: number; }
+export interface PatientWorkspace { role: "patient"; patient_name: string; streak_days: number; routine: CareRoutineItem[]; game_results: Array<{ game: string; score: number; total: number; completed_at: string }>; weekly_summary: Record<string, number>; }
+export interface CaretakerWorkspace { role: "caretaker"; patient_name: string; medications: Array<{ id: number; time: string; title: string; detail: string; status: string }>; contacts: Array<{ id: number; kind: string; name: string; detail: string; phone?: string }>; safety: { status: string; message: string }; next_review: string; }
+export async function getPatientWorkspace() { return (await api.get<PatientWorkspace>("/care/patient")).data; }
+export async function recordGameResult(game: string, score: number, total: number) { return (await api.post("/care/patient/games", { game, score, total })).data; }
+export async function getCaretakerWorkspace() { return (await api.get<CaretakerWorkspace>("/care/caretaker")).data; }
 
 
 /* ============================================================

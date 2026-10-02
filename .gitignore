@@ -38,6 +38,7 @@ dist/
 
 # Logs
 *.log
+backend/care_workspace.sqlite3
 
 # IDE
 .vscode/

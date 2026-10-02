@@ -18,6 +18,7 @@ import {
 import BrainViewer from "../components/BrainViewer";
 import NeuroNetwork from "../components/NeuroNetwork";
 import SpatialBackdrop from "../components/SpatialBackdrop";
+import RoleSwitcher from "../components/RoleSwitcher";
 
 import {
   getProjectStatus,
@@ -119,6 +120,8 @@ export function Dashboard() {
         </div>
 
         <div className="dashboard-topbar-right">
+
+          <RoleSwitcher role="doctor" />
 
           <div className="dashboard-pipeline-label">
             <span>Pipeline</span>

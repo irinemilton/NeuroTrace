@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from src.features.measurements import measure_subject
 from backend.config import settings
 from backend.live_demo import router as live_demo_router
+from backend.care import router as care_router
 
 
 # ============================================================
@@ -69,6 +70,17 @@ ALZHEIMER_METADATA_PATH = (
 ALZHEIMER_MODEL = None
 
 ALZHEIMER_FEATURES: list[str] = []
+
+
+# ============================================================
+# PROGRESSION MODELS (12M / 24M / 36M)
+# ============================================================
+
+PROGRESSION_MODEL_DIR = PROJECT_ROOT / "models" / "progression"
+PROGRESSION_HORIZONS  = (12, 24, 36)
+
+# Populated by load_progression_models() at startup.
+PROGRESSION_MODELS: dict[int, object] = {}
 
 
 def load_alzheimer_model() -> None:
@@ -164,6 +176,25 @@ def load_alzheimer_model() -> None:
 load_alzheimer_model()
 
 
+def load_progression_models() -> None:
+    """Load the 12M / 24M / 36M progression joblib models at startup."""
+    global PROGRESSION_MODELS
+    PROGRESSION_MODELS = {}
+    for months in PROGRESSION_HORIZONS:
+        path = PROGRESSION_MODEL_DIR / f"neurotrace_progression_{months}M.joblib"
+        if path.exists():
+            try:
+                PROGRESSION_MODELS[months] = joblib.load(path)
+                print(f"Progression model {months}M loaded: {path}")
+            except Exception as exc:
+                print(f"WARNING: Failed to load progression {months}M model: {exc}")
+        else:
+            print(f"WARNING: Progression model not found: {path}")
+
+
+load_progression_models()
+
+
 # ============================================================
 # APP
 # ============================================================
@@ -178,6 +209,7 @@ app = FastAPI(
     ),
     version=settings.VERSION,
 )
+app.include_router(care_router)
 
 
 # ============================================================
@@ -1288,6 +1320,97 @@ def subject_explanation(
                 f"for {subject_id}: {exc}"
             ),
         )
+
+
+# ============================================================
+# PROGRESSION ENDPOINT
+# ============================================================
+
+CLINICAL_FEATURES_FOR_PROGRESSION = [
+    "Age", "MMSE", "GDS", "FAST", "KATZ", "Barthel", "Lawton", "Camcog",
+]
+GENDER_MAP_BACKEND = {
+    "mujer": 0, "hombre": 1, "female": 0, "male": 1, "f": 0, "m": 1,
+}
+
+
+@app.get("/api/subjects/{subject_id}/progression")
+def subject_progression(subject_id: str):
+    """Return 12M, 24M, and 36M cognitive-progression risk probabilities.
+
+    Merges MRI brain features + clinical data (Age, MMSE, GDS, FAST, etc.)
+    to match the feature set used during model training.
+    The pipeline's median imputer handles any missing clinical values.
+    """
+    import math
+    subject_id = subject_id.strip()
+
+    if not PROGRESSION_MODELS:
+        raise HTTPException(
+            status_code=503,
+            detail="Progression models are not loaded. Run src.ml.train_progression first.",
+        )
+
+    # --- MRI features ---
+    brain_df = load_csv(BRAIN_FEATURES_FILE)
+    if brain_df.empty:
+        raise HTTPException(status_code=503, detail="brain_features.csv is not available.")
+
+    row_brain = get_subject_row(brain_df, "Subject_ID", subject_id)
+    if row_brain is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Subject '" + "{}" + "' not found in brain_features.csv.".format(subject_id),
+        )
+
+    mri_cols = [c for c in brain_df.columns if c != "Subject_ID"]
+    input_data: dict = {col: row_brain[col] for col in mri_cols}
+
+    # --- Clinical features (optional merge) ---
+    clinical_df = load_csv(PROJECT_ROOT / "data" / "processed" / "clinical_labeled.csv")
+    row_clinical = None
+    if not clinical_df.empty:
+        row_clinical = get_subject_row(clinical_df, "Subject_ID", subject_id)
+
+    for feat in CLINICAL_FEATURES_FOR_PROGRESSION:
+        if row_clinical is not None and feat in clinical_df.columns:
+            input_data[feat] = row_clinical[feat]
+        else:
+            input_data[feat] = math.nan
+
+    if row_clinical is not None and "Gender" in clinical_df.columns:
+        gender_raw = str(row_clinical.get("Gender", "")).strip().lower()
+        input_data["Gender"] = GENDER_MAP_BACKEND.get(gender_raw, 0)
+    else:
+        input_data["Gender"] = 0
+
+    X = pd.DataFrame([input_data])
+
+    # --- Predict for each horizon ---
+    horizons_result = {}
+    for months, model in sorted(PROGRESSION_MODELS.items()):
+        try:
+            proba  = model.predict_proba(X)[0]
+            pred   = int(model.predict(X)[0])
+            labels = list(model.classes_)
+            pos_label = 1 if 1 in labels else labels[-1]
+            pos_idx   = labels.index(pos_label) if pos_label in labels else -1
+            horizons_result[str(months) + "M"] = {
+                "progression_probability": round(float(proba[pos_idx]), 4),
+                "progression_class":       int(pred),
+                "risk_label":              "High" if pred == 1 else "Low",
+            }
+        except Exception as exc:
+            horizons_result[str(months) + "M"] = {"error": str(exc)}
+
+    return {
+        "subject_id":            subject_id,
+        "progression_available": True,
+        "horizons":              horizons_result,
+        "model_type":            "GradientBoosting",
+        "features_used":         len(input_data),
+        "clinical_merged":       row_clinical is not None,
+    }
 
 
 # ============================================================
