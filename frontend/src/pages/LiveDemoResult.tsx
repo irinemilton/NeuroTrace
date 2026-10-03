@@ -261,6 +261,11 @@ export default function LiveDemoResult() {
 
   const measurements = result.measurements;
   const prediction = result.prediction;
+  const illustrativeForecast = [
+    { horizon: "12 Months", risk: 18, stage: "Low risk", cdr: "0.8", cdrCi: "0.4–1.2", mmse: "28", mmseCi: "26–30", moe: "±0.4" },
+    { horizon: "24 Months", risk: 27, stage: "Low risk", cdr: "1.1", cdrCi: "0.6–1.7", mmse: "27", mmseCi: "24–29", moe: "±0.6" },
+    { horizon: "36 Months", risk: 36, stage: "Moderate risk", cdr: "1.5", cdrCi: "0.8–2.2", mmse: "25", mmseCi: "22–28", moe: "±0.7" },
+  ];
   const explanation = prediction.explanation || [];
   const regionRows = [
     ["hippocampus", "Hippocampus"],
@@ -417,7 +422,7 @@ export default function LiveDemoResult() {
 
       <section className="dashboard-forecast-card live-result-forecast">
         <div className="dashboard-forecast-heading">
-          <div><div className="dashboard-eyebrow">Longitudinal outlook</div><h2>Multi-horizon forecast</h2><p>Forecast models are not part of this live analysis session.</p></div>
+          <div><div className="dashboard-eyebrow">Longitudinal outlook · illustrative values</div><h2>Multi-horizon forecast</h2><p>Illustrative test values for interface preview only. Not clinical results.</p></div>
         </div>
         <div className="dashboard-baseline-row">
           <div><span>Current classification</span><strong>{prediction.classification}</strong></div>
@@ -426,10 +431,10 @@ export default function LiveDemoResult() {
           <div><span>Velocity</span><strong>N/A</strong></div>
         </div>
         <div className="dashboard-forecast-grid">
-          {(["12M", "24M", "36M"] as const).map((horizon) => <article className="dashboard-forecast-item" key={horizon}>
-            <div className="dashboard-forecast-item-head"><strong>{horizon.replace("M", " Months")}</strong><b>N/A</b></div>
-            <div className="dashboard-forecast-track"><i style={{ width: 0 }} /></div>
-            <div className="dashboard-forecast-values"><span>Estimated stage <b>N/A</b></span><span>CDR-SB / MMSE <b>N/A</b></span><span>95% CI <b>N/A</b></span></div>
+          {illustrativeForecast.map((item) => <article className="dashboard-forecast-item" key={item.horizon}>
+            <div className="dashboard-forecast-item-head"><strong>{item.horizon}</strong><b>{item.risk}%</b></div>
+            <div className="dashboard-forecast-track"><i style={{ width: `${item.risk}%` }} /></div>
+            <div className="dashboard-forecast-values"><span>Estimated stage <b>{item.stage}</b></span><span>Progression risk <b>{item.risk}%</b></span><span>Predicted CDR-SB <b>{item.cdr} ({item.cdrCi})</b></span><span>Predicted MMSE <b>{item.mmse} ({item.mmseCi})</b></span><span>CDR-SB margin of error <b>{item.moe}</b></span></div>
           </article>)}
         </div>
       </section>

@@ -4,11 +4,12 @@ NeuroTrace - Main Pipeline Orchestrator
 
 This script runs the complete neuroimaging analysis pipeline:
 1. Clinical data preprocessing
-2. MRI preprocessing
-3. Brain segmentation (UNesT)
-4. Feature extraction
-5. Classification training
-6. SHAP explainability
+2. DICOM to 3-D volume reconstruction
+3. MRI preprocessing
+4. Brain segmentation (UNesT)
+5. Feature extraction
+6. Classification training
+7. SHAP explainability
 """
 import os
 import sys
@@ -35,11 +36,14 @@ def main():
     parser = argparse.ArgumentParser(description="NeuroTrace Pipeline")
     parser.add_argument("--skip-clinical", action="store_true", help="Skip clinical preprocessing")
     parser.add_argument("--skip-mri", action="store_true", help="Skip MRI preprocessing")
+    parser.add_argument("--skip-reconstruction", action="store_true", help="Skip DICOM to 3-D reconstruction")
     parser.add_argument("--skip-seg", action="store_true", help="Skip segmentation")
     parser.add_argument("--skip-features", action="store_true", help="Skip feature extraction")
     parser.add_argument("--skip-train", action="store_true", help="Skip model training")
     parser.add_argument("--skip-shap", action="store_true", help="Skip SHAP analysis")
     parser.add_argument("--mri-input-dir", default="data/raw/MRI", help="Directory with raw MRI files")
+    parser.add_argument("--dicom-input-dir", default="data/raw/DICOM", help="Directory containing DICOM series")
+    parser.add_argument("--volume-output-dir", default="data/processed/reconstructed_volumes", help="Output for reconstructed 3-D NIfTI volumes")
     parser.add_argument("--mri-output-dir", default="data/processed/preprocessed_mri", help="Output for preprocessed MRI")
     parser.add_argument("--seg-output-dir", default="data/processed/segmentations", help="Output for segmentations")
     parser.add_argument("--features-output", default="data/processed/features.csv", help="Output feature matrix")
@@ -60,7 +64,21 @@ def main():
         if not success:
             return 1
 
-    # Step 2: MRI preprocessing
+    # Step 2: DICOM to 3-D volume reconstruction
+    if not args.skip_reconstruction:
+        dicom_dir = Path(args.dicom_input_dir)
+        if dicom_dir.exists():
+            success = run_cmd([
+                sys.executable, "-m", "src.preprocessing.dicom_to_volume",
+                str(dicom_dir), args.volume_output_dir,
+            ], "DICOM 3-D Volume Reconstruction")
+            if not success:
+                return 1
+            args.mri_input_dir = args.volume_output_dir
+        else:
+            print(f"WARNING: No DICOM directory found at {dicom_dir}, using {args.mri_input_dir}")
+
+    # Step 3: MRI preprocessing
     if not args.skip_mri:
         mri_files = list(Path(args.mri_input_dir).glob("*.nii*")) + list(Path(args.mri_input_dir).glob("*.nii.gz"))
         if not mri_files:
@@ -76,7 +94,7 @@ def main():
                 if not success:
                     return 1
 
-    # Step 3: Brain segmentation
+    # Step 4: Brain segmentation
     if not args.skip_seg:
         preproc_files = list(Path(args.mri_output_dir).glob("*_preproc.nii.gz"))
         if not preproc_files:
@@ -91,7 +109,7 @@ def main():
                 if not success:
                     return 1
 
-    # Step 4: Feature extraction
+    # Step 5: Feature extraction
     if not args.skip_features:
         success = run_cmd([
             sys.executable, "-m", "src.features.brain_features",
@@ -102,7 +120,7 @@ def main():
         if not success:
             return 1
 
-    # Step 5: Model training
+    # Step 6: Model training
     if not args.skip_train:
         success = run_cmd([
             sys.executable, "-m", "src.classification.train",
@@ -112,7 +130,7 @@ def main():
         if not success:
             return 1
 
-    # Step 6: SHAP explainability
+    # Step 7: SHAP explainability
     if not args.skip_shap:
         model_path = Path(args.model_output_dir) / "best_model.joblib"
         if model_path.exists():
@@ -132,6 +150,7 @@ def main():
     print("="*60)
     print(f"Clinical data: {args.clinical_output}")
     print(f"Preprocessed MRI: {args.mri_output_dir}")
+    print(f"Reconstructed volumes: {args.volume_output_dir}")
     print(f"Segmentations: {args.seg_output_dir}")
     print(f"Features: {args.features_output}")
     print(f"Models: {args.model_output_dir}")

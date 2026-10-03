@@ -107,7 +107,7 @@ def train(data_path: Path, output_dir: Path) -> dict:
 
     print(f"Loaded {len(frame)} subjects, {len(frame.columns)} columns")
 
-    excluded = {"Subject_ID"}
+    excluded = {"Subject_ID", "target_source", "baseline_stage"}
     target_columns = {_target_column(frame, m) for m in HORIZONS}
     feature_columns = [
         c for c in frame.columns

@@ -1,5 +1,5 @@
 {
-  "subjects": 72,
+  "subjects": 78,
   "features": [
     "3rd_Ventricle_volume_mm3",
     "4th_Ventricle_volume_mm3",
@@ -154,7 +154,7 @@
   ],
   "horizons": {
     "12M": {
-      "model": "C:\\Users\\user\\NeuroTrace\\models\\progression\\neurotrace_progression_12M.joblib",
+      "model": "models\\progression\\neurotrace_progression_12M.joblib",
       "classifier": "GradientBoosting",
       "cv_balanced_accuracy": 0.8788,
       "classes": [
@@ -169,7 +169,7 @@
       "cv_roc_auc": 0.9347
     },
     "24M": {
-      "model": "C:\\Users\\user\\NeuroTrace\\models\\progression\\neurotrace_progression_24M.joblib",
+      "model": "models\\progression\\neurotrace_progression_24M.joblib",
       "classifier": "GradientBoosting",
       "cv_balanced_accuracy": 0.8833,
       "classes": [
@@ -184,7 +184,7 @@
       "cv_roc_auc": 0.9474
     },
     "36M": {
-      "model": "C:\\Users\\user\\NeuroTrace\\models\\progression\\neurotrace_progression_36M.joblib",
+      "model": "models\\progression\\neurotrace_progression_36M.joblib",
       "classifier": "GradientBoosting",
       "cv_balanced_accuracy": 0.8833,
       "classes": [

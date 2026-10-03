@@ -78,6 +78,7 @@ ALZHEIMER_FEATURES: list[str] = []
 # ============================================================
 
 PROGRESSION_MODEL_DIR = PROJECT_ROOT / "models" / "progression"
+PROGRESSION_DATA_FILE = PROJECT_ROOT / "data" / "processed" / "progression_longitudinal_78.csv"
 PROGRESSION_HORIZONS  = (12, 24, 36)
 
 # Populated by load_progression_models() at startup.
@@ -510,8 +511,13 @@ def get_clinical_data(
     )
 
 
-    if row is None:
+    if row is None and PROGRESSION_DATA_FILE.exists():
+        progression_df = load_csv(PROGRESSION_DATA_FILE)
+        row = get_subject_row(progression_df, "Subject_ID", subject_id)
+        if row is not None:
+            return row_to_dict(row, progression_df.columns)
 
+    if row is None:
         return None
 
 
@@ -1403,7 +1409,10 @@ def subject_progression(subject_id: str):
     input_data: dict = {col: row_brain[col] for col in mri_cols}
 
     # --- Clinical features (optional merge) ---
-    clinical_df = load_csv(PROJECT_ROOT / "data" / "processed" / "clinical_labeled.csv")
+    clinical_df = load_csv(
+        PROGRESSION_DATA_FILE if PROGRESSION_DATA_FILE.exists()
+        else PROJECT_ROOT / "data" / "processed" / "clinical_labeled.csv"
+    )
     row_clinical = None
     if not clinical_df.empty:
         row_clinical = get_subject_row(clinical_df, "Subject_ID", subject_id)
@@ -1446,6 +1455,7 @@ def subject_progression(subject_id: str):
         "model_type":            "GradientBoosting",
         "features_used":         len(input_data),
         "clinical_merged":       row_clinical is not None,
+        "training_data":         str(PROGRESSION_DATA_FILE.name if PROGRESSION_DATA_FILE.exists() else "clinical_labeled.csv"),
     }
 
 

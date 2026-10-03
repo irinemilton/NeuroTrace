@@ -1322,7 +1322,7 @@ export default function BrainAnalysis() {
               <span className="eyebrow">BASELINE / ACTUAL</span>
               <h3>Current measurements</h3>
               <div className="forecast-metric-list">
-                <div><span>Clinical stage</span><strong>{displayValue(clinicalValue("Diagnostico"))}</strong></div>
+                <div><span>Clinical stage</span><strong>{displayValue(clinicalValue("baseline_stage"))}</strong></div>
                 <div><span>Actual CDR-SB</span><strong>N/A</strong></div>
                 <div><span>Actual MMSE</span><strong>{displayValue(clinicalValue("MMSE"))}</strong></div>
               </div>
@@ -1342,12 +1342,13 @@ export default function BrainAnalysis() {
             {(["12M", "24M", "36M"] as const).map((horizon) => {
               const hData = progression?.horizons[horizon];
               const percent = hData ? Math.round(hData.progression_probability * 100) : null;
+              const percentLabel = hData && hData.progression_probability > 0 && percent === 0 ? "<1%" : percent === null ? "N/A" : `${percent}%`;
               return <article className="forecast-card" key={horizon}>
-                <div className="forecast-card-heading"><div><span className="eyebrow">FORECAST</span><h3>{horizon.replace("M", " Months")}</h3></div><strong className={hData?.risk_label === "High" ? "forecast-risk high" : "forecast-risk"}>{percent === null ? "N/A" : `${percent}%`}</strong></div>
+                <div className="forecast-card-heading"><div><span className="eyebrow">FORECAST</span><h3>{horizon.replace("M", " Months")}</h3></div><strong className={hData?.risk_label === "High" ? "forecast-risk high" : "forecast-risk"}>{percentLabel}</strong></div>
                 <div className="forecast-progress"><span style={{ width: `${percent ?? 0}%` }} /></div>
                 <div className="forecast-metric-list">
                   <div><span>Estimated stage</span><strong>{hData ? `${hData.risk_label} risk` : "N/A"}</strong></div>
-                  <div><span>Progression / AD risk</span><strong>{percent === null ? "N/A" : `${percent}%`}</strong></div>
+                  <div><span>Progression / AD risk</span><strong>{percentLabel}</strong></div>
                   <div><span>Predicted CDR-SB</span><strong>N/A</strong></div>
                   <div><span>95% CI for CDR-SB</span><strong>N/A</strong></div>
                   <div><span>Predicted MMSE</span><strong>N/A</strong></div>

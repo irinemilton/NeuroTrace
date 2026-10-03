@@ -228,6 +228,7 @@ export interface ProgressionResult {
   model_type: string;
   features_used: number;
   clinical_merged: boolean;
+  training_data?: string;
 }
 
 /* ============================================================

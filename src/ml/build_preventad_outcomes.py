@@ -70,6 +70,7 @@ def build_dataset(
     brain_path: Path,
     clinical_path: Path,
     output_path: Path,
+    include_unmatched: bool = False,
 ) -> pd.DataFrame:
     """Merge MRI features + clinical data, derive outcomes, save CSV."""
     if not brain_path.exists():
@@ -90,7 +91,7 @@ def build_dataset(
         keep.append("Gender")
 
     clinical_sub = clinical[keep].drop_duplicates("Subject_ID")
-    merged = brain.merge(clinical_sub, on="Subject_ID", how="inner", validate="one_to_one")
+    merged = brain.merge(clinical_sub, on="Subject_ID", how="left" if include_unmatched else "inner", validate="one_to_one")
     print(f"Matched subjects (MRI + clinical): {len(merged)}")
 
     if "Gender" in merged.columns:
@@ -118,6 +119,11 @@ def build_dataset(
     )
     outcomes.columns = ["outcome_12M", "outcome_24M", "outcome_36M"]
     merged = pd.concat([merged, outcomes], axis=1)
+    merged["baseline_stage"] = merged["Diagnostico"]
+    if include_unmatched:
+        has_clinical = merged["Age"].notna() if "Age" in merged.columns else pd.Series(False, index=merged.index)
+        merged.loc[~has_clinical, ["outcome_12M", "outcome_24M", "outcome_36M"]] = np.nan
+        merged["target_source"] = np.where(has_clinical, "synthetic_clinical_rule", "missing_clinical_data")
 
     merged = merged.drop(columns=["Diagnostico", "dxcog"], errors="ignore")
 
@@ -142,8 +148,9 @@ def main() -> None:
     parser.add_argument("--brain",    type=Path, default=DEFAULT_BRAIN)
     parser.add_argument("--clinical", type=Path, default=DEFAULT_CLINICAL)
     parser.add_argument("--output",   type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--include-unmatched", action="store_true")
     args = parser.parse_args()
-    build_dataset(args.brain, args.clinical, args.output)
+    build_dataset(args.brain, args.clinical, args.output, include_unmatched=args.include_unmatched)
 
 
 if __name__ == "__main__":
